@@ -2,7 +2,6 @@ use std::collections::HashMap;
 
 use anyhow::{Result, anyhow};
 use async_trait::async_trait;
-use futures::future::join_all;
 use log::info;
 use qdrant_client::{
     Qdrant,
@@ -26,13 +25,16 @@ use crate::{
     },
     documents::{
         collection_metadata::CollectionMetadata,
-        document_chunk::{DocumentChunk, DocumentChunkSearchResult},
+        document_chunk::DocumentChunk,
         document_metadata::DocumentMetadata,
         traits::{GetIndexableFields, IndexableField},
     },
-    embedder::send_vectorization,
+    embedder::{send_vectorization, vectorize},
     metadata_storage::MetadataStorage,
-    search::{keyword::KeywordSearch, semantic::SemanticSearch},
+    search::{
+        document_search_results::DocumentChunkSearchResult, keyword::KeywordSearch,
+        semantic::SemanticSearch,
+    },
     vector_database::traits::VectorDatabase,
 };
 
@@ -50,45 +52,7 @@ impl VectorDatabase for QdrantDatabase {
         database_config: &DatabaseConfig,
         chunks: Vec<DocumentChunk>,
     ) -> Result<()> {
-        // Vectorize the chunks
-        // - Split the chunks into batches
-        // - Vectorize batch by batch
-        // - Batch is configurable
-        let mut batches: Vec<Vec<DocumentChunk>> = Vec::new();
-        let mut batch: Vec<DocumentChunk> = Vec::new();
-        for chunk in chunks {
-            if batch.len() == embedder_config.vectorization_batch_size {
-                batches.push(batch);
-                batch = Vec::new();
-            }
-
-            batch.push(chunk);
-        }
-
-        if !batch.is_empty() {
-            batches.push(batch);
-        }
-
-        // Record the data entries
-        let mut tasks = Vec::new();
-        for batch in batches.into_iter() {
-            tasks.push(send_vectorization(
-                &embedder_config.provider,
-                &embedder_config.base_url,
-                &embedder_config.api_key,
-                &embedder_config.model,
-                &embedder_config.encoding_format,
-                batch,
-            ));
-        }
-
-        let results: Vec<std::result::Result<Vec<DocumentChunk>, anyhow::Error>> =
-            join_all(tasks).await;
-        let mut chunks: Vec<DocumentChunk> = Vec::new();
-        for result in results {
-            let result = result?;
-            chunks.extend(result);
-        }
+        let chunks: Vec<DocumentChunk> = vectorize(embedder_config, chunks).await?;
 
         let points: Vec<PointStruct> = chunks
             .into_iter()
