@@ -4,7 +4,7 @@ use gpui::{ParentElement, SharedString, Styled, WeakEntity};
 use gpui_component::{
     IndexPath,
     list::{ListDelegate, ListItem},
-    text::{Text, TextView},
+    text::Text,
     v_flex,
 };
 

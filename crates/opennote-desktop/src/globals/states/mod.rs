@@ -1,6 +1,5 @@
 pub mod helpers;
 pub mod server_registry;
-pub mod traits;
 
 use std::collections::HashMap;
 
@@ -18,10 +17,7 @@ use crate::{
     globals::{
         actions::route_helpers::route_read_blocks,
         bootstrap::{GlobalApplicationBootStrap, SEARCH_SCOPES_ENUMS},
-        states::{
-            server_registry::{ServerRegistry, ServerStates},
-            traits::SelectedText,
-        },
+        states::server_registry::{ServerRegistry, ServerStates},
     },
     widgets::pane::Pane,
 };
@@ -39,9 +35,6 @@ pub struct States {
     /// The key is a WindowId.
     pub active_panes: HashMap<WindowId, WeakEntity<Pane>>,
 
-    /// The selected text in the editor
-    pub selected_text: Option<SharedString>,
-
     /// The active search scope
     pub search_scope: SearchScope,
 }
@@ -55,7 +48,6 @@ impl States {
             servers: ServerRegistry::build_servers(servers),
             active_panes: HashMap::new(),
             search_scope: SearchScope::Document,
-            selected_text: None,
         }
     }
 
@@ -276,15 +268,5 @@ impl States {
 
     pub fn update_servers(&mut self, servers: HashMap<String, RemoteServerConfiguration>) {
         self.servers = ServerRegistry::build_servers(servers);
-    }
-}
-
-impl SelectedText for States {
-    fn pop_selected_text(&mut self) -> Option<SharedString> {
-        std::mem::take(&mut self.selected_text)
-    }
-
-    fn set_selected_text(&mut self, text: impl Into<SharedString>) {
-        self.selected_text = Some(text.into())
     }
 }
