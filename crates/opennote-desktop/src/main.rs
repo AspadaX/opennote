@@ -25,7 +25,6 @@ use crate::{
         mcp_server::DesktopMCPServer, states::States, tasks::tracker::TaskTracker,
         velotype::init_velotype,
     },
-    libs::theme::adapt_theme_to_system,
     logs::UICustomLog,
     views::{resource_loading::ResourceLoadingView, workspace::Workspace},
 };
@@ -104,8 +103,6 @@ async fn main() -> Result<()> {
                 };
 
                 let workspace_window = cx.open_window(WindowOptions::default(), |window, cx| {
-                    adapt_theme_to_system(cx);
-
                     let view = cx.new(|cx| {
                         Workspace::new(window, cx)
                             .context("Workspace initialization failed")

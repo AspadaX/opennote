@@ -1,5 +1,5 @@
 use gpui::{Context, *};
-use gpui_component::{Root, StyledExt, WindowExt};
+use gpui_component::{Root, StyledExt, Theme, WindowExt};
 
 use opennote_models::constants::LOCAL_SERVER_NAME;
 
@@ -56,6 +56,15 @@ impl Workspace {
 
         let focus_handle = cx.focus_handle();
         window.focus(&focus_handle);
+
+        // Sync the theme on workspace init
+        Theme::sync_system_appearance(Some(window), cx);
+
+        // Keep track of the system theme change.
+        // The window will follow the system theme.
+        _subscriptions.push(cx.observe_window_appearance(window, |_this, window, cx| {
+            Theme::sync_system_appearance(Some(window), cx);
+        }));
 
         Ok(Self {
             focus_handle,

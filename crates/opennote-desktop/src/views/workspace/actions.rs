@@ -7,7 +7,6 @@ use crate::{
         CloseActiveTab, CreateOneBlock, NextTab, OpenNewWindow, PreviousTab, ToggleCommandBar,
         ToggleSearchBar, ToggleSettingsPanel, ToggleSidebar,
     },
-    libs::theme::adapt_theme_to_system,
 };
 
 use super::Workspace;
@@ -175,8 +174,6 @@ impl Workspace {
         cx: &mut Context<Self>,
     ) {
         cx.open_window(WindowOptions::default(), |window, cx| {
-            adapt_theme_to_system(cx);
-
             let view = cx.new(|cx| {
                 let workspace =
                     Workspace::new(window, cx).expect("Workspace initialization failed");

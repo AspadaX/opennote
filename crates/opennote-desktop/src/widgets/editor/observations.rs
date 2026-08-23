@@ -1,5 +1,5 @@
 use gpui::{BorrowAppContext, Context};
-use gpui_component::WindowExt;
+use gpui_component::{ThemeMode, WindowExt};
 
 use opennote_models::block::Block;
 
@@ -15,6 +15,23 @@ use crate::{
     },
     widgets::{editor::Editor, pane::tab::TabState},
 };
+
+pub fn observe_theme_change(
+    this: &mut Editor,
+    window: &mut gpui::Window,
+    cx: &mut Context<'_, Editor>,
+) {
+    let theme_mode = ThemeMode::from(window.appearance());
+
+    let switch_to_dark_mode = match theme_mode {
+        ThemeMode::Dark => true,
+        ThemeMode::Light => false,
+    };
+
+    this.state.update(cx, |_this, cx| {
+        opennote_velotype::editor::Editor::switch_theme(cx, switch_to_dark_mode);
+    });
+}
 
 pub fn observe_chunk_block(
     this: &mut Editor,

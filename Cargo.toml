@@ -26,15 +26,12 @@ members = [
 ]
 
 [workspace.dependencies]
-# Internal dependencies
-opennote-desktop = { path = "crates/opennote-desktop" }
 opennote-data = { path = "crates/opennote-data" }
 opennote-server = { path = "crates/opennote-server" }
 opennote-mcp-server = { path = "crates/opennote-mcp-server" }
 opennote-embedder = { path = "crates/opennote-embedder" }
 opennote-models = { path = "crates/opennote-models" }
 opennote-entities = { path = "crates/opennote-entities" }
-opennote-texts-processing = { path = "crates/opennote-texts-processing" }
 opennote-bootstrap = { path = "crates/opennote-bootstrap" }
 opennote-core-logics = { path = "crates/opennote-core-logics" }
 opennote-velotype = { path = "crates/opennote-velotype" }

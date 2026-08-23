@@ -7,8 +7,21 @@ use gpui::*;
 use super::{Editor, InfoDialogKind};
 use crate::i18n::I18nManager;
 use crate::net::update::{self as update_check, UpdateCheckResult, UpdateVersionInfo};
+use crate::theme::{BUILTIN_THEME_VELOTYPE_ID, BUILTIN_THEME_VELOTYPE_LIGHT_ID, ThemeManager};
 
 impl Editor {
+    /// Switch the theme between dark and light mode
+    pub fn switch_theme(cx: &mut App, switch_to_dark_mode: bool) {
+        let theme_id = match switch_to_dark_mode {
+            true => BUILTIN_THEME_VELOTYPE_ID,
+            false => BUILTIN_THEME_VELOTYPE_LIGHT_ID,
+        };
+
+        let _ = cx.update_global::<ThemeManager, _>(|theme_manager, _cx| {
+            theme_manager.set_theme_by_id(theme_id);
+        });
+    }
+
     pub(crate) fn request_check_updates(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if self.update_check_in_progress {
             self.show_info_dialog(InfoDialogKind::CheckForUpdates, cx);
