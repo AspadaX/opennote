@@ -4,7 +4,7 @@ use gpui::{ParentElement, SharedString, Styled, WeakEntity};
 use gpui_component::{
     IndexPath,
     list::{ListDelegate, ListItem},
-    text::Text,
+    text::{Text, TextView},
     v_flex,
 };
 
@@ -22,7 +22,7 @@ use crate::{
     globals::{
         actions::route_helpers::{self},
         bootstrap::GlobalApplicationBootStrap,
-        states::{server_registry::ServerStates, States},
+        states::{States, server_registry::ServerStates},
     },
     widgets::{pane::helpers::open_block, search_bar::bar::SearchBar},
 };

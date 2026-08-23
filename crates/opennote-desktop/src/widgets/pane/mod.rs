@@ -14,7 +14,7 @@ use gpui_component::{
 };
 use uuid::Uuid;
 
-use crate::globals::{helpers::get_language_profile, states::States};
+use crate::globals::{helpers::get_language_profile, states::helpers::get_states};
 use crate::key_mappings::{
     helpers::get_keystrokes_as_shared_string,
     mappings::{CreateOneBlock, OpenNewWindow, ToggleCommandBar, ToggleSearchBar},
@@ -252,7 +252,7 @@ impl Pane {
 
     fn update_editor_with_selected_block(&mut self, cx: &mut Context<'_, Pane>) {
         if let Some(selected_block_id) = self.selected_block_id {
-            let states: &States = cx.global();
+            let states = get_states(cx);
 
             let block = states.get_block(&selected_block_id);
 

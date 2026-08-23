@@ -6,7 +6,7 @@ use opennote_models::block::Block;
 use crate::{
     globals::{
         actions::update_n_blocks,
-        states::States,
+        states::helpers::get_states,
         tasks::{
             task_result::{TaskResult, TaskType},
             tracker::TaskTracker,
@@ -58,7 +58,7 @@ pub fn observe_chunk_block(
             return;
         };
 
-        let states: &States = cx.global();
+        let states = get_states(cx);
         let servers = states.get_servers_by_block_ids(&vec![block.id]).remove(0);
 
         update_n_blocks(window, cx, vec![block], servers.0, servers.1, true);

@@ -20,7 +20,7 @@ use opennote_models::{
 use crate::globals::{
     actions::route_helpers::{route_read_blocks, route_search_blocks},
     bootstrap::GlobalApplicationBootStrap,
-    states::{States, server_registry::ServerRegistry},
+    states::{helpers::get_states, server_registry::ServerRegistry},
 };
 
 pub struct DesktopMCPServer {
@@ -48,7 +48,7 @@ impl DesktopMCPServer {
             return Ok(());
         }
 
-        let states: &States = cx.global();
+        let states = get_states(cx);
 
         let mcp_server = DesktopMCPServer::new(states.get_server_registry(), bootstrap.0.clone());
 

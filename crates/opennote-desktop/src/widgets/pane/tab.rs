@@ -6,7 +6,7 @@ use gpui_component::button::{Button, ButtonRounded, ButtonVariants};
 use gpui_component::{IconName, Selectable, Sizable};
 use uuid::Uuid;
 
-use crate::globals::states::States;
+use crate::globals::states::helpers::get_states;
 use crate::libs::tabs::drag::DraggedItem;
 use crate::libs::tabs::tab::Tab;
 use crate::libs::tabs::tab_bar::TabBar;
@@ -70,7 +70,7 @@ pub fn create_tab_bar_for_blocks(
         }
 
         // Get the title of the block
-        let states: &States = cx.global();
+        let states = get_states(cx);
         let mut title = String::new();
         if let Some(block) = states.get_block(&id) {
             title = block.get_title();

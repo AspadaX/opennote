@@ -476,6 +476,12 @@ where
             })
     }
 
+    pub fn update_query_input_mut(&mut self, cx: &mut App, window: &mut Window, query: impl Into<SharedString>) {
+        self.query_input.update(cx, |this, cx| {
+            this.set_value(query, window, cx);
+        });
+    }
+
     fn render_items(
         &mut self,
         items_count: usize,

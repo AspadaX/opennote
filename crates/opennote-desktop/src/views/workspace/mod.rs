@@ -45,6 +45,7 @@ impl Workspace {
 
         let sidebar = cx.new(|cx| OpenNoteSidebar::new(cx));
         let pane = cx.new(|cx| Pane::new(cx, window, sidebar.clone()));
+        let editor = pane.read(cx).editor.downgrade();
 
         // Set the active pane and server for the workspace we have just created.
         cx.update_global::<States, ()>(|this, _cx| {
@@ -61,7 +62,7 @@ impl Workspace {
             sidebar: sidebar.clone(),
             pane,
             command_bar: cx.new(|cx| CommandBar::new(cx, window)),
-            search_bar: cx.new(|cx| SearchBar::new(cx, window)),
+            search_bar: cx.new(|cx| SearchBar::new(cx, window, editor)),
             settings_panel: cx.new(|cx| SettingsPanel::new(cx, window, sidebar.downgrade())),
             _subscriptions,
         })
