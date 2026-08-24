@@ -78,6 +78,11 @@ if ! cargo set-version --version &>/dev/null; then
     die "cargo-edit is required but not installed. Run: cargo install cargo-edit"
 fi
 
+# 1.1 Cargo check does not have warnings
+if ! RUSTFLAGS="-D warnings" cargo check; then
+    die "cargo check reported warnings. Please fix that before releasing!"
+fi
+
 # 2. Cargo.toml files exist
 WORKSPACE_CARGO="Cargo.toml"
 if [ ! -f "$WORKSPACE_CARGO" ]; then

@@ -14,7 +14,6 @@ members = [
     "crates/opennote-connectors",
     "crates/opennote-mcp-server",
     "crates/opennote-server",
-    "crates/opennote-texts-processing",
     "crates/opennote-bootstrap",
     "crates/opennote-core-logics",
     "crates/opennote-velotype",

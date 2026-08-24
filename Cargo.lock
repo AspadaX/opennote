@@ -9870,14 +9870,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "opennote-texts-processing"
-version = "0.2.4"
-dependencies = [
- "chunk",
- "opennote-models",
-]
-
-[[package]]
 name = "opennote-velotype"
 version = "0.2.4"
 dependencies = [
