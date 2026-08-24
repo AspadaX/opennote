@@ -1,4 +1,5 @@
 pub mod env_vars;
+pub mod hex;
 
 /*
  * Shared between different ends (desktop, server, etc)
