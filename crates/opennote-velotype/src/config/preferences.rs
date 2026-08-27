@@ -206,18 +206,19 @@ impl EditorSettings {
         }
     }
 
-    pub(crate) fn status_bar_preferences(cx: &App) -> StatusBarPreferences {
-        cx.try_global::<Self>()
-            .map(|s| StatusBarPreferences {
-                enabled: s.status_bar_settings.status_bar_enabled,
-                show_word_count: s.status_bar_settings.status_bar_show_word_count,
-                show_cursor_position: s.status_bar_settings.status_bar_show_cursor_position,
-                show_sidebar_toggle: s.status_bar_settings.status_bar_show_sidebar_toggle,
-                show_mode_switch: s.status_bar_settings.status_bar_show_mode_switch,
-                custom_buttons: Vec::new(),
-            })
-            .unwrap_or_default()
-    }
+    // DEPRECATED
+    // pub(crate) fn status_bar_preferences(cx: &App) -> StatusBarPreferences {
+    //     cx.try_global::<Self>()
+    //         .map(|s| StatusBarPreferences {
+    //             enabled: s.status_bar_settings.status_bar_enabled,
+    //             show_word_count: s.status_bar_settings.status_bar_show_word_count,
+    //             show_cursor_position: s.status_bar_settings.status_bar_show_cursor_position,
+    //             show_sidebar_toggle: s.status_bar_settings.status_bar_show_sidebar_toggle,
+    //             show_mode_switch: s.status_bar_settings.status_bar_show_mode_switch,
+    //             custom_buttons: Vec::new(),
+    //         })
+    //         .unwrap_or_default()
+    // }
 }
 
 #[derive(Serialize)]
@@ -859,7 +860,6 @@ impl PreferencesWindow {
         }
         cx.clear_key_bindings();
         install_keybindings(cx, &preferences.keybindings);
-        crate::app_menu::install_menus(cx);
         cx.update_global::<EditorSettings, _>(|settings, _cx| {
             settings.status_bar_settings.status_bar_enabled = preferences.status_bar.enabled;
             settings.status_bar_settings.status_bar_show_word_count =

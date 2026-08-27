@@ -10,5 +10,6 @@ pub struct RemoteServerConfiguration {
     pub password: String,
 
     /// This must be the same as the one set on the server side
+    #[serde(with = "crate::shared_key")]
     pub shared_key: SharedKey,
 }

@@ -59,10 +59,7 @@ Edit `~/.config/opennote/configurations.json` and add a remote server entry unde
       "my-server": {
         "connection_string": "http://<server-ip>:8080",
         "password": "your-secret-password",
-        "shared_key": [
-          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-          0, 0, 0, 0, 0, 0, 0, 0, 0
-        ]
+        "shared_key": "0000000000000000000000000000000000000000000000000000000000000000"
       }
     }
   }

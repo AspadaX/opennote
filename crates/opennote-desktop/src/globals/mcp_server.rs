@@ -20,7 +20,7 @@ use opennote_models::{
 use crate::globals::{
     actions::route_helpers::{route_read_blocks, route_search_blocks},
     bootstrap::GlobalApplicationBootStrap,
-    states::{States, server_registry::ServerRegistry},
+    states::{helpers::get_states, server_registry::ServerRegistry},
 };
 
 pub struct DesktopMCPServer {
@@ -31,7 +31,7 @@ pub struct DesktopMCPServer {
 impl Global for DesktopMCPServer {}
 
 impl DesktopMCPServer {
-    pub fn init(cx: &mut App) {
+    pub fn init(cx: &mut App) -> Result<()> {
         let bootstrap: &GlobalApplicationBootStrap = cx.global();
         let configurations = run_async_code(async {
             bootstrap
@@ -45,10 +45,10 @@ impl DesktopMCPServer {
         });
 
         if !configurations.enabled {
-            return;
+            return Ok(());
         }
 
-        let states: &States = cx.global();
+        let states = get_states(cx);
 
         let mcp_server = DesktopMCPServer::new(states.get_server_registry(), bootstrap.0.clone());
 
@@ -56,14 +56,15 @@ impl DesktopMCPServer {
             &configurations.get_mcp_server_address(),
             configurations.workers,
             std::sync::Arc::new(mcp_server),
-        )
-        .unwrap();
+        )?;
 
         cx.background_spawn(async {
             let runtime = tokio::runtime::Runtime::new().unwrap();
             runtime.block_on(async { server.await.unwrap() })
         })
         .detach();
+
+        Ok(())
     }
 
     pub fn new(server_registry: ServerRegistry, bootstrap: DesktopBootstrap) -> Self {

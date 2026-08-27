@@ -16,6 +16,7 @@ pub struct ServerConfigurations {
     pub system: SystemConfigurations,
 
     /// The shared key is set for this server
+    #[serde(with = "crate::shared_key")]
     pub shared_key: SharedKey,
 }
 

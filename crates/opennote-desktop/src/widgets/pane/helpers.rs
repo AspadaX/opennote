@@ -1,11 +1,11 @@
 use gpui::{App, SharedString};
 use uuid::Uuid;
 
-use crate::globals::states::States;
+use crate::globals::states::helpers::get_states;
 
 /// Open a block to the active pane
 pub fn open_block(cx: &mut App, block_id: Uuid, highlighted_text: Option<SharedString>) {
-    let states: &States = cx.global();
+    let states = get_states(cx);
     let Some(active_pane) = states.get_active_pane(cx) else {
         return;
     };

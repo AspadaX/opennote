@@ -16,7 +16,10 @@ use crate::{
     },
     key_mappings::{key_contexts::EDITOR, mappings::SaveDocument},
     widgets::{
-        editor::{observations::observe_chunk_block, subscriptions::subscribe_editor_events},
+        editor::{
+            observations::{observe_chunk_block, observe_theme_change},
+            subscriptions::subscribe_editor_events,
+        },
         pane::Pane,
     },
 };
@@ -49,6 +52,8 @@ impl Editor {
         _subscriptions.push(cx.observe_global_in::<TaskTracker>(window, observe_chunk_block));
 
         _subscriptions.push(cx.subscribe_in(&state, window, subscribe_editor_events));
+
+        _subscriptions.push(cx.observe_window_appearance(window, observe_theme_change));
 
         Self {
             focus_handle: cx.focus_handle(),

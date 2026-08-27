@@ -1,20 +1,20 @@
 use anyhow::Result;
 use gpui::{
     App, AppContext as _, Bounds, Context, IntoElement, ParentElement as _, Render, SharedString,
-    Styled as _, Window, WindowBounds, WindowHandle, WindowOptions, div,
+    Styled as _, Subscription, Window, WindowBounds, WindowHandle, WindowOptions, div,
     prelude::FluentBuilder as _, px, size,
 };
 use gpui_component::{
-    ActiveTheme as _, Sizable as _, Size, StyledExt as _, spinner::Spinner, v_flex,
+    ActiveTheme as _, Sizable as _, Size, StyledExt as _, Theme, spinner::Spinner, v_flex,
 };
-
-use crate::libs::theme::adapt_theme_to_system;
 
 const LOADING_WINDOW_WIDTH: f32 = 420.;
 const LOADING_WINDOW_HEIGHT: f32 = 240.;
 
 pub struct ResourceLoadingView {
     error_message: Option<SharedString>,
+
+    _subscriptions: Vec<Subscription>,
 }
 
 impl ResourceLoadingView {
@@ -29,19 +29,28 @@ impl ResourceLoadingView {
                 window_bounds: Some(WindowBounds::Windowed(bounds)),
                 ..WindowOptions::default()
             },
-            |_window, cx| {
-                adapt_theme_to_system(cx);
-                cx.new(|_| Self::new())
-            },
+            |window, cx| cx.new(|cx| Self::new(cx, window)),
         )?;
 
         handle.update(cx, |_view, window, _cx| window.activate_window())?;
         Ok(handle)
     }
 
-    pub fn new() -> Self {
+    pub fn new(cx: &mut Context<'_, ResourceLoadingView>, window: &mut Window) -> Self {
+        // Sync the theme on init
+        Theme::sync_system_appearance(Some(window), cx);
+
+        let mut _subscriptions = Vec::new();
+
+        // Keep track of the system theme change.
+        // The window will follow the system theme.
+        _subscriptions.push(cx.observe_window_appearance(window, |_this, window, cx| {
+            Theme::sync_system_appearance(Some(window), cx);
+        }));
+
         Self {
             error_message: None,
+            _subscriptions,
         }
     }
 

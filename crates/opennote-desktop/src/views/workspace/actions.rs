@@ -2,12 +2,11 @@ use gpui::*;
 use gpui_component::Root;
 
 use crate::{
-    globals::states::States,
+    globals::states::helpers::get_states,
     key_mappings::mappings::{
         CloseActiveTab, CreateOneBlock, NextTab, OpenNewWindow, PreviousTab, ToggleCommandBar,
         ToggleSearchBar, ToggleSettingsPanel, ToggleSidebar,
     },
-    libs::theme::adapt_theme_to_system,
 };
 
 use super::Workspace;
@@ -29,7 +28,7 @@ impl Workspace {
             }
 
             if this.is_toggled() {
-                let states: &States = cx.global();
+                let states = get_states(cx);
                 let active_server =
                     states.get_active_server_name(window.window_handle().window_id());
                 if let Some(tree_state) = this.get_tree_focus_handle(cx, &active_server) {
@@ -57,6 +56,24 @@ impl Workspace {
             }
 
             if this.is_toggled {
+                let mut selected_text = None;
+
+                let _ = this.editor.update(cx, |this, cx| {
+                    let _ = this.state.update(cx, |this, cx| {
+                        selected_text = this.selected_markdown_text(cx);
+                    });
+                });
+
+                if let Some(query) = selected_text {
+                    // Keeping newlines will cause gpui to panic in single-line rendering mode,
+                    // when rendering the search input box
+                    let query: String = query.lines().map(|item| item.replace("\n", " ")).collect();
+
+                    this.search_results_list.update(cx, |this, cx| {
+                        this.update_query_input_mut(cx, window, query);
+                    });
+                }
+
                 window.focus(&this.get_input_field_focus_handle(cx));
             }
         });
@@ -95,7 +112,7 @@ impl Workspace {
         cx: &mut Context<Self>,
     ) {
         self.sidebar.update(cx, |this, cx| {
-            let states: &States = cx.global();
+            let states = get_states(cx);
             let active_server = states.get_active_server_name(window.window_handle().window_id());
             let tree_state = this.get_tree_state(&active_server);
 
@@ -122,7 +139,7 @@ impl Workspace {
 
     /// Switch to the next tab in the active pane.
     pub fn next_tab(&mut self, _action: &NextTab, _window: &mut Window, cx: &mut Context<Self>) {
-        let states: &States = cx.global();
+        let states = get_states(cx);
         let Some(active_pane) = states.get_active_pane(cx) else {
             return;
         };
@@ -139,7 +156,7 @@ impl Workspace {
         _window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        let states: &States = cx.global();
+        let states = get_states(cx);
         let Some(active_pane) = states.get_active_pane(cx) else {
             return;
         };
@@ -157,8 +174,6 @@ impl Workspace {
         cx: &mut Context<Self>,
     ) {
         cx.open_window(WindowOptions::default(), |window, cx| {
-            adapt_theme_to_system(cx);
-
             let view = cx.new(|cx| {
                 let workspace =
                     Workspace::new(window, cx).expect("Workspace initialization failed");
@@ -177,7 +192,7 @@ impl Workspace {
         _window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        let states: &States = cx.global();
+        let states = get_states(cx);
         let Some(active_pane) = states.get_active_pane(cx) else {
             return;
         };

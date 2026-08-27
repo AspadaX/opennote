@@ -1342,7 +1342,7 @@ impl Theme {
         Self {
             name: BUILTIN_THEME_VELOTYPE_LIGHT_NAME.into(),
             colors: ThemeColors {
-                editor_background: Hsla::from(rgba(0xf7f8fbff)),
+                editor_background: Hsla::from(rgba(0xffffffff)),
                 source_mode_block_bg: Hsla::from(rgba(0xeef2f7ff)),
                 comment_bg: Hsla::from(rgba(0xfef3c766)),
                 text_default: Hsla::from(rgba(0x1f2937ff)),
@@ -1461,11 +1461,11 @@ pub struct ThemeCatalogEntry {
     pub name: String,
 }
 
-const BUILTIN_THEME_VELOTYPE_ID: &str = "velotype";
-const BUILTIN_THEME_VELOTYPE_NAME: &str = "Velotype";
-const BUILTIN_THEME_VELOTYPE_LIGHT_ID: &str = "velotype-light";
-const BUILTIN_THEME_VELOTYPE_LIGHT_NAME: &str = "Velotype Light";
-const CUSTOM_THEME_ID: &str = "custom";
+pub const BUILTIN_THEME_VELOTYPE_ID: &str = "velotype";
+pub const BUILTIN_THEME_VELOTYPE_NAME: &str = "Velotype";
+pub const BUILTIN_THEME_VELOTYPE_LIGHT_ID: &str = "velotype-light";
+pub const BUILTIN_THEME_VELOTYPE_LIGHT_NAME: &str = "Velotype Light";
+pub const CUSTOM_THEME_ID: &str = "custom";
 
 fn builtin_theme_catalog() -> Vec<ThemeCatalogEntry> {
     vec![

@@ -1,7 +1,7 @@
 use anyhow::Context as AnyhowContext;
 use gpui::{
     App, AppContext, Context, Entity, FocusHandle, Focusable, ParentElement, Render, SharedString,
-    Styled, Subscription, div,
+    Styled, Subscription, WeakEntity, div,
 };
 use gpui_component::{
     ActiveTheme, IndexPath, Sizable, StyledExt, h_flex,
@@ -14,9 +14,10 @@ use crate::{
     globals::{
         bootstrap::{GlobalApplicationBootStrap, SEARCH_METHODS_ENUMS, SEARCH_SCOPES_ENUMS},
         helpers::get_language_profile,
-        states::States,
+        states::helpers::get_states,
     },
     widgets::{
+        editor::Editor,
         floating::create_float_palette,
         search_bar::{
             observations::observe_search_result_list,
@@ -35,10 +36,16 @@ pub struct SearchBar {
 
     pub focus_handle: FocusHandle,
     pub _subscriptions: Vec<Subscription>,
+
+    pub editor: WeakEntity<Editor>,
 }
 
 impl SearchBar {
-    pub fn new(cx: &mut Context<Self>, window: &mut gpui::Window) -> Self {
+    pub fn new(
+        cx: &mut Context<Self>,
+        window: &mut gpui::Window,
+        editor: WeakEntity<Editor>,
+    ) -> Self {
         let mut _subscriptions = Vec::new();
         let search_bar_weak_entity = cx.weak_entity();
 
@@ -76,7 +83,7 @@ impl SearchBar {
         });
 
         let search_scope_state = cx.new(|cx| {
-            let states: &States = cx.global();
+            let states = get_states(cx);
             let selected_index = states.get_search_scope_index();
 
             SelectState::new(
@@ -112,6 +119,7 @@ impl SearchBar {
             search_method_state,
             search_scope_state,
             _subscriptions,
+            editor,
         }
     }
 

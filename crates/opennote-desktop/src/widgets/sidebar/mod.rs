@@ -61,19 +61,6 @@ impl EventEmitter<OpenNoteSidebarEvent> for OpenNoteSidebar {}
 impl OpenNoteSidebar {
     pub fn new(cx: &mut Context<Self>) -> Self {
         let mut _subscriptions = Vec::new();
-        let mut tree_states = HashMap::new();
-
-        // Create tree states for each server
-        tree_states.insert(
-            SharedString::from(LOCAL_SERVER_NAME),
-            cx.new(|cx| TreeState::new(cx)),
-        );
-
-        let _ = cx.update_global::<States, ()>(|states, cx| {
-            for (name, _remote_server_states) in states.get_servers().iter() {
-                tree_states.insert(name.clone(), cx.new(|cx| TreeState::new(cx)));
-            }
-        });
 
         // Watch for changes in States, such as the blocks list.
         //
@@ -86,7 +73,7 @@ impl OpenNoteSidebar {
         Self {
             focus_handle: cx.focus_handle(), // obtain a new focus from the global pool for this view
             is_toggled: true,
-            tree_states,
+            tree_states: Self::create_tree_states(cx),
             blocks_state: HashMap::new(),
             mouse_position: None,
             _subscriptions,
@@ -255,6 +242,26 @@ impl OpenNoteSidebar {
         cx.notify();
         return;
     }
+
+    fn create_tree_states(
+        cx: &mut Context<'_, OpenNoteSidebar>,
+    ) -> HashMap<SharedString, Entity<TreeState>> {
+        let mut tree_states = HashMap::new();
+
+        // Create tree states for each server
+        tree_states.insert(
+            SharedString::from(LOCAL_SERVER_NAME),
+            cx.new(|cx| TreeState::new(cx)),
+        );
+
+        let _ = cx.update_global::<States, ()>(|states, cx| {
+            for (name, _remote_server_states) in states.get_servers().iter() {
+                tree_states.insert(name.clone(), cx.new(|cx| TreeState::new(cx)));
+            }
+        });
+
+        tree_states
+    }
 }
 
 impl Focusable for OpenNoteSidebar {
@@ -289,6 +296,16 @@ impl Render for OpenNoteSidebar {
                 (active_server_name, blocks, remote_server_tab_bar)
             });
 
+        let tree_state = match self.get_tree_state(&active_server_name) {
+            Some(result) => result,
+            // Try rebuilding the tree state when it can't get the server for the first time.
+            // This is to prevent an error out when a new server has just added to the configuration.
+            None => {
+                self.tree_states = Self::create_tree_states(cx);
+                self.get_tree_state(&active_server_name).unwrap()
+            }
+        };
+
         div()
             .key_context(SIDEBAR)
             .track_focus(&self.focus_handle(cx))
@@ -299,14 +316,7 @@ impl Render for OpenNoteSidebar {
             .child(remote_server_tab_bar)
             .child(
                 TreeViewSidebar::new(Side::Left)
-                    .child(
-                        self.create_sidebar_items(
-                            cx,
-                            self.get_tree_state(&SharedString::new(active_server_name))
-                                .unwrap(),
-                            blocks,
-                        ),
-                    )
+                    .child(self.create_sidebar_items(cx, tree_state, blocks))
                     .header(
                         h_flex()
                             .w_full()

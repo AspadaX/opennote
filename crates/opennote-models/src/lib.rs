@@ -9,3 +9,5 @@ pub mod query;
 pub mod search;
 pub mod server;
 pub mod traits;
+
+mod shared_key;

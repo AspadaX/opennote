@@ -1,5 +1,5 @@
 use gpui::{Context, *};
-use gpui_component::{Root, StyledExt, WindowExt};
+use gpui_component::{Root, StyledExt, Theme, WindowExt};
 
 use opennote_models::constants::LOCAL_SERVER_NAME;
 
@@ -45,6 +45,7 @@ impl Workspace {
 
         let sidebar = cx.new(|cx| OpenNoteSidebar::new(cx));
         let pane = cx.new(|cx| Pane::new(cx, window, sidebar.clone()));
+        let editor = pane.read(cx).editor.downgrade();
 
         // Set the active pane and server for the workspace we have just created.
         cx.update_global::<States, ()>(|this, _cx| {
@@ -56,12 +57,21 @@ impl Workspace {
         let focus_handle = cx.focus_handle();
         window.focus(&focus_handle);
 
+        // Sync the theme on workspace init
+        Theme::sync_system_appearance(Some(window), cx);
+
+        // Keep track of the system theme change.
+        // The window will follow the system theme.
+        _subscriptions.push(cx.observe_window_appearance(window, |_this, window, cx| {
+            Theme::sync_system_appearance(Some(window), cx);
+        }));
+
         Ok(Self {
             focus_handle,
             sidebar: sidebar.clone(),
             pane,
             command_bar: cx.new(|cx| CommandBar::new(cx, window)),
-            search_bar: cx.new(|cx| SearchBar::new(cx, window)),
+            search_bar: cx.new(|cx| SearchBar::new(cx, window, editor)),
             settings_panel: cx.new(|cx| SettingsPanel::new(cx, window, sidebar.downgrade())),
             _subscriptions,
         })

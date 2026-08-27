@@ -1,3 +1,4 @@
+pub mod helpers;
 pub mod server_registry;
 
 use std::collections::HashMap;
@@ -34,6 +35,7 @@ pub struct States {
     /// The key is a WindowId.
     pub active_panes: HashMap<WindowId, WeakEntity<Pane>>,
 
+    /// The active search scope
     pub search_scope: SearchScope,
 }
 

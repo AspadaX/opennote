@@ -10,7 +10,7 @@ use opennote_data::search::SearchScope;
 use opennote_models::configurations::fields::search::SupportedSearchMethod;
 
 use crate::{
-    globals::{bootstrap::GlobalApplicationBootStrap, states::States},
+    globals::{bootstrap::GlobalApplicationBootStrap, states::helpers::get_states_mut},
     widgets::search_bar::{bar::SearchBar, search_results::SearchResultsList},
 };
 
@@ -70,7 +70,7 @@ pub fn subscribe_search_scope(
 
             let new_search_scope = SearchScope::from_str(&new_search_scope.to_owned()).unwrap();
 
-            let states: &mut States = cx.global_mut();
+            let states = get_states_mut(cx);
             states.set_search_scope(new_search_scope);
 
             let _ =
