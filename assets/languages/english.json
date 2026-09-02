@@ -18,5 +18,18 @@
   "pending_tasks_warning_title": "Tasks are still running",
   "pending_tasks_warning_message": "Some changes are still in progress. Closing now may discard them.",
   "pending_tasks_warning_cancel": "Cancel",
-  "pending_tasks_warning_discard": "Discard and close"
+  "pending_tasks_warning_discard": "Discard and close",
+  "creating_one_block": "Creating 1 block",
+  "created_one_block": "Created 1 block",
+  "block_creation_failed": "Block creation failed due to {}",
+  "deleting_n_blocks": "Deleting {} blocks",
+  "deleted_n_blocks": "Deleted {} blocks",
+  "block_deletion_failed": "Block deletion failed due to {}",
+  "updating_n_blocks": "Updating {} blocks",
+  "updated_n_blocks": "Updated {} blocks",
+  "block_update_failed": "Block update failed due to {}",
+  "embedding_texts_error": "Error has occurred when embedding texts: {}",
+  "updating_blocks_parent": "Updating blocks' parent",
+  "updated_parent_for_n_blocks": "Updated parent for {} blocks",
+  "block_parent_update_failed": "Block parent update failed due to {}"
 }

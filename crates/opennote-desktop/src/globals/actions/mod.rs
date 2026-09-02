@@ -5,12 +5,8 @@ pub mod route_helpers;
 use gpui::{SharedString, Window};
 use uuid::Uuid;
 
-use opennote_core_logics::payload::{PayloadContentParameters, build_payload};
 use opennote_data::Databases;
-use opennote_embedder::{
-    entry::EmbedderEntry,
-    vectorization::{send_vectorization, vectorize},
-};
+use opennote_embedder::{entry::EmbedderEntry, vectorization::vectorize};
 use opennote_models::{
     block::Block,
     configurations::fields::{EmbedderConfig, VectorDatabaseConfig},
@@ -18,6 +14,7 @@ use opennote_models::{
 };
 
 use crate::globals::{
+    actions::block::build_block,
     bootstrap::GlobalApplicationBootStrap,
     helpers::get_language_profile,
     states::{States, server_registry::ServerStates},
@@ -32,9 +29,6 @@ use crate::globals::{
     },
 };
 
-/// TODO:
-/// - Use locale for the messages
-///
 /// It will create one new block with a default title payload.
 /// This is a normal task that will only show up in the notification center on finish.
 pub fn create_one_block(
@@ -42,11 +36,17 @@ pub fn create_one_block(
     app_cx: &mut gpui::App,
     parent_block_id: Option<Uuid>,
 ) {
+    let language_profile = get_language_profile(app_cx).unwrap();
+    let default_block_title = language_profile["default_block_title"].clone();
+    let creating_message = language_profile["creating_one_block"].clone();
+    let created_message = language_profile["created_one_block"].clone();
+    let creation_failed_message = language_profile["block_creation_failed"].clone();
+
     let window = window.window_handle();
 
     app_cx
         .spawn(async move |cx| {
-            let task = TaskInformation::new("Creating 1 block", TaskType::Uncategorized, false);
+            let task = TaskInformation::new(creating_message, TaskType::Uncategorized, false);
 
             let task_id = task.id;
 
@@ -59,13 +59,11 @@ pub fn create_one_block(
                     Databases,
                     EmbedderEntry,
                     VectorDatabaseConfig,
-                )>(|this, cx| {
-                    let language_profile = get_language_profile(cx).unwrap();
-
+                )>(|this, _cx| {
                     let configurations = this.get_configurations();
 
                     (
-                        language_profile["default_block_title"].clone(),
+                        default_block_title.clone(),
                         this.0.databases.clone(),
                         this.0.embedders.clone(),
                         configurations.system.vector_database.clone(),
@@ -78,21 +76,8 @@ pub fn create_one_block(
                 })
                 .unwrap();
 
-            let mut block = Block::new(parent_block_id, Vec::new());
-
-            let payload = build_payload(
-                block.id,
-                PayloadContentParameters {
-                    title: Some(default_block_title.to_string()),
-                    ..Default::default()
-                },
-            )?;
-
-            let mut vectorized_payloads = send_vectorization(vec![payload], &embedders).await?;
-
-            if let Some(vectorized_payload) = vectorized_payloads.pop() {
-                block.payloads.push(vectorized_payload);
-            }
+            let block =
+                build_block(parent_block_id, default_block_title, embedders, None, None).await?;
 
             match route_helpers::route_create_blocks(
                 &server_name,
@@ -112,7 +97,7 @@ pub fn create_one_block(
                         TaskResult::new(
                             task_id,
                             false,
-                            format!("Block creation failed due to {}", error),
+                            creation_failed_message.replace("{}", &error.to_string()),
                             TaskType::Uncategorized,
                             None,
                         ),
@@ -127,7 +112,7 @@ pub fn create_one_block(
                 TaskResult::new(
                     task_id,
                     true,
-                    "Created 1 block",
+                    created_message,
                     TaskType::Uncategorized,
                     None,
                 ),
@@ -145,12 +130,17 @@ pub fn create_one_block(
 /// Delete n blocks specified by their ids.
 /// This is a normal task that will only show up in the notification center on finish.
 pub fn delete_n_blocks(window: &mut Window, app_cx: &mut gpui::App, block_ids: Vec<Uuid>) {
+    let language_profile = get_language_profile(app_cx).unwrap();
+    let deleting_message = language_profile["deleting_n_blocks"].clone();
+    let deleted_message = language_profile["deleted_n_blocks"].clone();
+    let deletion_failed_message = language_profile["block_deletion_failed"].clone();
+
     let window = window.window_handle();
 
     app_cx
         .spawn(async move |cx| {
             let task = TaskInformation::new(
-                format!("Deleting {} blocks", block_ids.len()),
+                deleting_message.replace("{}", &block_ids.len().to_string()),
                 TaskType::Uncategorized,
                 false,
             );
@@ -197,7 +187,7 @@ pub fn delete_n_blocks(window: &mut Window, app_cx: &mut gpui::App, block_ids: V
                         TaskResult::new(
                             task_id,
                             false,
-                            format!("Block deletion failed due to {}", error),
+                            deletion_failed_message.replace("{}", &error.to_string()),
                             TaskType::Uncategorized,
                             None,
                         ),
@@ -212,7 +202,7 @@ pub fn delete_n_blocks(window: &mut Window, app_cx: &mut gpui::App, block_ids: V
                 TaskResult::new(
                     task_id,
                     true,
-                    format!("Deleted {} blocks", num_blocks),
+                    deleted_message.replace("{}", &num_blocks.to_string()),
                     TaskType::Uncategorized,
                     None,
                 ),
@@ -238,12 +228,18 @@ pub fn update_n_blocks(
     server_states: ServerStates,
     with_payload_changes: bool,
 ) {
+    let language_profile = get_language_profile(app_cx).unwrap();
+    let updating_message = language_profile["updating_n_blocks"].clone();
+    let updated_message = language_profile["updated_n_blocks"].clone();
+    let update_failed_message = language_profile["block_update_failed"].clone();
+    let embedding_error_message = language_profile["embedding_texts_error"].clone();
+
     let window = window.window_handle();
 
     app_cx
         .spawn(async move |cx| {
             let task = TaskInformation::new(
-                format!("Updating {} blocks", blocks.len()),
+                updating_message.replace("{}", &blocks.len().to_string()),
                 TaskType::UpdateNBlocks,
                 true,
             );
@@ -308,7 +304,7 @@ pub fn update_n_blocks(
                                 TaskResult::new(
                                     task_id,
                                     false,
-                                    format!("Error has occurred when embedding texts: {}", error),
+                                    embedding_error_message.replace("{}", &error.to_string()),
                                     TaskType::UpdateNBlocks,
                                     None,
                                 ),
@@ -337,7 +333,7 @@ pub fn update_n_blocks(
                         TaskResult::new(
                             task_id,
                             false,
-                            format!("Block update failed due to {}", error),
+                            update_failed_message.replace("{}", &error.to_string()),
                             TaskType::UpdateNBlocks,
                             None,
                         ),
@@ -352,7 +348,7 @@ pub fn update_n_blocks(
                 TaskResult::new(
                     task_id,
                     true,
-                    format!("Updated {} blocks", num_blocks),
+                    updated_message.replace("{}", &num_blocks.to_string()),
                     TaskType::UpdateNBlocks,
                     None,
                 ),
@@ -375,6 +371,11 @@ pub fn update_parent(
     new_parent_block_id: Option<Uuid>,
     block_ids: Vec<Uuid>,
 ) {
+    let language_profile = get_language_profile(app_cx).unwrap();
+    let updating_parent_message = language_profile["updating_blocks_parent"].clone();
+    let updated_parent_message = language_profile["updated_parent_for_n_blocks"].clone();
+    let parent_update_failed_message = language_profile["block_parent_update_failed"].clone();
+
     let window = window.window_handle();
 
     app_cx
@@ -391,7 +392,7 @@ pub fn update_parent(
                 .unwrap();
 
             let task =
-                TaskInformation::new("Updating blocks' parent", TaskType::Uncategorized, false);
+                TaskInformation::new(updating_parent_message, TaskType::Uncategorized, false);
             let task_id = task.id;
 
             // Register task in the scheduler.
@@ -442,7 +443,7 @@ pub fn update_parent(
                                 TaskResult::new(
                                     task_id,
                                     false,
-                                    format!("Block parent update failed due to {}", error),
+                                    parent_update_failed_message.replace("{}", &error.to_string()),
                                     TaskType::Uncategorized,
                                     None,
                                 ),
@@ -458,7 +459,7 @@ pub fn update_parent(
                         TaskResult::new(
                             task_id,
                             false,
-                            format!("Block parent update failed due to {}", error),
+                            parent_update_failed_message.replace("{}", &error.to_string()),
                             TaskType::Uncategorized,
                             None,
                         ),
@@ -472,7 +473,7 @@ pub fn update_parent(
                 TaskResult::new(
                     task_id,
                     true,
-                    format!("Updated parent for {} blocks", num_blocks),
+                    updated_parent_message.replace("{}", &num_blocks.to_string()),
                     TaskType::Uncategorized,
                     None,
                 ),

@@ -1,11 +1,28 @@
+use std::io::Read;
+
 use gpui::*;
 use gpui_component::Root;
+use opennote_data::Databases;
+use opennote_embedder::entry::EmbedderEntry;
+use opennote_models::configurations::fields::{EmbedderConfig, VectorDatabaseConfig};
 
 use crate::{
-    globals::states::helpers::get_states,
+    globals::{
+        actions::{block::build_block, route_helpers::route_create_blocks},
+        bootstrap::GlobalApplicationBootStrap,
+        states::{States, helpers::get_states, server_registry::ServerStates},
+        tasks::{
+            task_information::TaskInformation,
+            task_result::{TaskResult, TaskType},
+            tracker::{
+                register_long_running_completion, register_long_running_task, register_task,
+            },
+            unique_notifications::ImportNBlocksNotification,
+        },
+    },
     key_mappings::mappings::{
-        CloseActiveTab, CreateOneBlock, NextTab, OpenNewWindow, PreviousTab, ToggleCommandBar,
-        ToggleSearchBar, ToggleSettingsPanel, ToggleSidebar,
+        CloseActiveTab, CreateOneBlock, ImportFiles, NextTab, OpenNewWindow, PreviousTab,
+        ToggleCommandBar, ToggleSearchBar, ToggleSettingsPanel, ToggleSidebar,
     },
 };
 
@@ -201,6 +218,116 @@ impl Workspace {
             if let Some(selected_block_id) = this.selected_block_id {
                 this.close_tab(&selected_block_id, cx);
             }
+        });
+    }
+
+    pub fn import_files(
+        &mut self,
+        _action: &ImportFiles,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        // Open a dialogue to pick files
+        let prompt = cx.prompt_for_paths(PathPromptOptions {
+            files: true,
+            directories: false,
+            multiple: true,
+            prompt: None,
+        });
+
+        let window = window.window_handle();
+
+        cx.spawn(async move |this, cx| {
+            let paths = match prompt.await {
+                Ok(Ok(Some(path))) => path,
+                Ok(Ok(None)) | Err(_) => return,
+                Ok(Err(err)) => return,
+            };
+
+            let task = TaskInformation::new(
+                format!("Importing {} blocks", paths.len()),
+                TaskType::ImportNBlocks,
+                true,
+            );
+
+            let task_id = task.id;
+
+            // Register task in the scheduler.
+            register_long_running_task(window, cx, task);
+            
+            // Create blocks for files
+            // Store the blocks to the active server
+            // Refresh the sidebar
+
+            let (databases, embedders, document_chunk_size, vector_database_config) = cx
+                .read_global::<GlobalApplicationBootStrap, (Databases, EmbedderEntry, usize, VectorDatabaseConfig)>(
+                    |this, _cx| {
+                        let configurations = this.get_configurations();
+
+                        (
+                            this.0.databases.clone(),
+                            this.0.embedders.clone(),
+                            configurations.user.search.document_chunk_size,
+                            configurations.system.vector_database.clone(),
+                        )
+                    },
+                )
+                .unwrap();
+
+            let (server_name, server_states) = cx
+                .read_global::<States, (SharedString, ServerStates)>(|this, _cx| {
+                    this.get_active_server(window.window_id())
+                })
+                .unwrap();
+
+            let mut blocks = Vec::new();
+
+            for path in paths {
+                let Some(raw_file_name) = path.file_name() else {
+                    continue;
+                };
+
+                let mut content = String::new();
+
+                match std::fs::File::open(path) {
+                    Ok(mut file) => {
+                        file.read_to_string(&mut content).unwrap();
+                    }
+                    Err(_error) => return,
+                };
+
+                blocks.push(build_block(
+                    None,
+                    raw_file_name.to_string_lossy().to_string(),
+                    embedders,
+                    Some(content),
+                    Some(document_chunk_size),
+                ).await.unwrap());
+            }
+
+            route_create_blocks(
+                &server_name,
+                &server_states,
+                &databases,
+                &vector_database_config,
+                blocks,
+            );
+
+            register_long_running_completion::<ImportNBlocksNotification>(
+                window,
+                cx,
+                TaskResult::new(
+                    task_id,
+                    true,
+                    updated_message.replace("{}", &num_blocks.to_string()),
+                    TaskType::ImportNBlocks,
+                    None,
+                ),
+            );
+
+            let _ = cx.update_global::<States, ()>(|this, cx| {
+                this.refresh_blocks_list(cx);
+            });
         });
     }
 }

@@ -1,8 +1,13 @@
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use gpui::App;
+use opennote_models::block::Block;
 use uuid::Uuid;
 
 use opennote_core_logics::helpers::run_async_code;
+use opennote_core_logics::payload::{
+    PayloadContentParameters, build_payload, convert_string_to_payloads,
+};
+use opennote_embedder::{entry::EmbedderEntry, vectorization::send_vectorization};
 use opennote_models::query::BlockQuery;
 
 use crate::globals::{
@@ -33,4 +38,31 @@ pub fn get_block_content(block_id: &Uuid, cx: &mut App) -> Result<String> {
     });
 
     Ok(block.get_text_content())
+}
+
+pub async fn build_block(
+    parent_block_id: Option<Uuid>,
+    default_block_title: String,
+    embedders: EmbedderEntry,
+    content: Option<String>,
+    text_chunk_size: Option<usize>,
+) -> Result<Block, anyhow::Error> {
+    let mut block = Block::new(parent_block_id, Vec::new());
+
+    let payloads = match content {
+        Some(content) => convert_string_to_payloads(block.id, text_chunk_size, content)?,
+        None => vec![build_payload(
+            block.id,
+            PayloadContentParameters {
+                title: Some(default_block_title.to_string()),
+                ..Default::default()
+            },
+        )?],
+    };
+
+    let mut vectorized_payloads = send_vectorization(payloads, &embedders).await?;
+    if let Some(vectorized_payload) = vectorized_payloads.pop() {
+        block.payloads.push(vectorized_payload);
+    }
+    Ok(block)
 }
