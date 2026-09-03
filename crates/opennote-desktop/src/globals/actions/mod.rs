@@ -16,7 +16,7 @@ use opennote_models::{
 use crate::globals::{
     actions::block::build_block,
     bootstrap::GlobalApplicationBootStrap,
-    helpers::get_language_profile,
+    helpers::{get_language_profile, run_async_background},
     states::{States, server_registry::ServerStates},
     tasks::{
         task_information::TaskInformation,
@@ -29,6 +29,9 @@ use crate::globals::{
     },
 };
 
+/// TODO:
+/// - Use locale for the messages
+///
 /// It will create one new block with a default title payload.
 /// This is a normal task that will only show up in the notification center on finish.
 pub fn create_one_block(
@@ -77,7 +80,7 @@ pub fn create_one_block(
                 .unwrap();
 
             let block =
-                build_block(parent_block_id, default_block_title, embedders, None, None).await?;
+                build_block(parent_block_id, default_block_title, &embedders, None, None).await?;
 
             match route_helpers::route_create_blocks(
                 &server_name,
@@ -273,8 +276,6 @@ pub fn update_n_blocks(
                 let tokio_handle = tokio::runtime::Handle::current();
                 // TODO: make this concurrent
                 for block in blocks.iter_mut() {
-                    let tokio_handle = tokio_handle.clone();
-
                     // Take the payloads out, and swap in a default value temporarily
                     let payloads = std::mem::take(&mut block.payloads);
 
@@ -283,14 +284,9 @@ pub fn update_n_blocks(
                     let embedders_config = embedders_config.clone();
 
                     // TODO: improve the inference speed
-                    let vectorized_payloads = executor
-                        .spawn(async move {
-                            tokio_handle
-                                .spawn(async move {
-                                    vectorize(&embedders, &embedders_config, payloads).await
-                                })
-                                .await
-                                .unwrap()
+                    let vectorized_payloads =
+                        run_async_background(executor, tokio_handle.clone(), async move {
+                            vectorize(&embedders, &embedders_config, payloads).await
                         })
                         .await;
 
@@ -371,11 +367,6 @@ pub fn update_parent(
     new_parent_block_id: Option<Uuid>,
     block_ids: Vec<Uuid>,
 ) {
-    let language_profile = get_language_profile(app_cx).unwrap();
-    let updating_parent_message = language_profile["updating_blocks_parent"].clone();
-    let updated_parent_message = language_profile["updated_parent_for_n_blocks"].clone();
-    let parent_update_failed_message = language_profile["block_parent_update_failed"].clone();
-
     let window = window.window_handle();
 
     app_cx
@@ -392,7 +383,7 @@ pub fn update_parent(
                 .unwrap();
 
             let task =
-                TaskInformation::new(updating_parent_message, TaskType::Uncategorized, false);
+                TaskInformation::new("Updating blocks' parent", TaskType::Uncategorized, false);
             let task_id = task.id;
 
             // Register task in the scheduler.
@@ -443,7 +434,7 @@ pub fn update_parent(
                                 TaskResult::new(
                                     task_id,
                                     false,
-                                    parent_update_failed_message.replace("{}", &error.to_string()),
+                                    format!("Block parent update failed due to {}", error),
                                     TaskType::Uncategorized,
                                     None,
                                 ),
@@ -459,7 +450,7 @@ pub fn update_parent(
                         TaskResult::new(
                             task_id,
                             false,
-                            parent_update_failed_message.replace("{}", &error.to_string()),
+                            format!("Block parent update failed due to {}", error),
                             TaskType::Uncategorized,
                             None,
                         ),
@@ -473,7 +464,7 @@ pub fn update_parent(
                 TaskResult::new(
                     task_id,
                     true,
-                    updated_parent_message.replace("{}", &num_blocks.to_string()),
+                    format!("Updated parent for {} blocks", num_blocks),
                     TaskType::Uncategorized,
                     None,
                 ),

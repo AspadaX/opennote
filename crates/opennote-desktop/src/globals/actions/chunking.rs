@@ -37,7 +37,7 @@ pub fn chunk_block(window: &mut Window, app_cx: &mut gpui::App, mut block: Block
                 .background_executor()
                 .spawn(async move {
                     let payloads =
-                        match convert_string_to_payloads(block.id, Some(text_chunk_size), text) {
+                        match convert_string_to_payloads(block.id, Some(text_chunk_size), text, None) {
                             Ok(results) => results,
                             Err(error) => {
                                 log::error!("Error when trying to save a document: {}", error);

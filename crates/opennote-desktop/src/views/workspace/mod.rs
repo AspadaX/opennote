@@ -1,9 +1,9 @@
+mod actions;
+
 use gpui::{Context, *};
 use gpui_component::{Root, StyledExt, Theme, WindowExt};
 
 use opennote_models::constants::LOCAL_SERVER_NAME;
-
-mod actions;
 
 use crate::{
     globals::{states::States, tasks::tracker::TaskTracker},
@@ -119,6 +119,7 @@ impl Render for Workspace {
             .on_action(cx.listener(Self::previous_tab))
             .on_action(cx.listener(Self::close_active_tab))
             .on_action(cx.listener(Self::open_new_window))
+            .on_action(cx.listener(Self::import_files))
             .children(notification)
             .children(dialogue)
     }

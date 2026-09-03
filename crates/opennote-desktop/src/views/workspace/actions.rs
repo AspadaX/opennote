@@ -2,21 +2,21 @@ use std::io::Read;
 
 use gpui::*;
 use gpui_component::Root;
+
 use opennote_data::Databases;
 use opennote_embedder::entry::EmbedderEntry;
-use opennote_models::configurations::fields::{EmbedderConfig, VectorDatabaseConfig};
+use opennote_models::configurations::fields::VectorDatabaseConfig;
 
 use crate::{
     globals::{
         actions::{block::build_block, route_helpers::route_create_blocks},
         bootstrap::GlobalApplicationBootStrap,
+        helpers::{get_language_profile, run_async_background},
         states::{States, helpers::get_states, server_registry::ServerStates},
         tasks::{
             task_information::TaskInformation,
             task_result::{TaskResult, TaskType},
-            tracker::{
-                register_long_running_completion, register_long_running_task, register_task,
-            },
+            tracker::{register_long_running_completion, register_long_running_task},
             unique_notifications::ImportNBlocksNotification,
         },
     },
@@ -227,6 +227,11 @@ impl Workspace {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        let language_profile = get_language_profile(cx).unwrap();
+        let importing_message = language_profile["importing_n_blocks"].clone();
+        let imported_message = language_profile["imported_n_blocks"].clone();
+        let import_failed_message = language_profile["block_import_failed"].clone();
+
         // Open a dialogue to pick files
         let prompt = cx.prompt_for_paths(PathPromptOptions {
             files: true,
@@ -237,15 +242,16 @@ impl Workspace {
 
         let window = window.window_handle();
 
-        cx.spawn(async move |this, cx| {
+        cx.spawn(async move |_this, cx| {
             let paths = match prompt.await {
                 Ok(Ok(Some(path))) => path,
                 Ok(Ok(None)) | Err(_) => return,
-                Ok(Err(err)) => return,
+                Ok(Err(_error)) => return,
             };
 
+            let num_blocks = paths.len();
             let task = TaskInformation::new(
-                format!("Importing {} blocks", paths.len()),
+                importing_message.replace("{}", &num_blocks.to_string()),
                 TaskType::ImportNBlocks,
                 true,
             );
@@ -253,11 +259,7 @@ impl Workspace {
             let task_id = task.id;
 
             // Register task in the scheduler.
-            register_long_running_task(window, cx, task);
-            
-            // Create blocks for files
-            // Store the blocks to the active server
-            // Refresh the sidebar
+            register_long_running_task::<ImportNBlocksNotification>(window, cx, task);
 
             let (databases, embedders, document_chunk_size, vector_database_config) = cx
                 .read_global::<GlobalApplicationBootStrap, (Databases, EmbedderEntry, usize, VectorDatabaseConfig)>(
@@ -280,38 +282,96 @@ impl Workspace {
                 })
                 .unwrap();
 
-            let mut blocks = Vec::new();
+            let executor = cx.background_executor();
+            let tokio_handle = tokio::runtime::Handle::current();
+
+            let mut results = Vec::new();
 
             for path in paths {
+                let embedders = embedders.clone();
+
                 let Some(raw_file_name) = path.file_name() else {
                     continue;
                 };
 
+                let raw_file_name = raw_file_name.to_string_lossy().to_string();
+
                 let mut content = String::new();
 
-                match std::fs::File::open(path) {
+                match std::fs::File::open(&path) {
                     Ok(mut file) => {
                         file.read_to_string(&mut content).unwrap();
                     }
                     Err(_error) => return,
                 };
 
-                blocks.push(build_block(
-                    None,
-                    raw_file_name.to_string_lossy().to_string(),
-                    embedders,
-                    Some(content),
-                    Some(document_chunk_size),
-                ).await.unwrap());
+                // Create blocks for files
+                let result = run_async_background(
+                    executor, tokio_handle.clone(), async move {
+                        build_block(
+                            None,
+                            raw_file_name,
+                            &embedders,
+                            Some(content),
+                            Some(document_chunk_size),
+                        ).await
+                    }
+                ).await;
+                
+                results.push(result);
             }
 
-            route_create_blocks(
+            let mut blocks = Vec::new();
+            for block in results {
+                match block {
+                    Ok(result) => {
+                        blocks.push(result);
+                    },
+                    Err(error) => {
+                        log::error!("Failed to build imported block: {}", error);
+                        register_long_running_completion::<ImportNBlocksNotification>(
+                            window,
+                            cx,
+                            TaskResult::new(
+                                task_id,
+                                false,
+                                import_failed_message.replace("{}", &error.to_string()),
+                                TaskType::ImportNBlocks,
+                                None,
+                            ),
+                        );
+                        return;
+                    }
+                }
+            }
+
+            // Store the blocks to the active server
+            match route_create_blocks(
                 &server_name,
                 &server_states,
                 &databases,
                 &vector_database_config,
                 blocks,
-            );
+            )
+            .await
+            {
+                Ok(_) => {}
+                Err(error) => {
+                    log::error!("Failed to store imported blocks: {}", error);
+                    register_long_running_completion::<ImportNBlocksNotification>(
+                        window,
+                        cx,
+                        TaskResult::new(
+                            task_id,
+                            false,
+                            import_failed_message.replace("{}", &error.to_string()),
+                            TaskType::ImportNBlocks,
+                            None,
+                        ),
+                    );
+                    return;
+                }
+            }
 
             register_long_running_completion::<ImportNBlocksNotification>(
                 window,
@@ -319,15 +379,16 @@ impl Workspace {
                 TaskResult::new(
                     task_id,
                     true,
-                    updated_message.replace("{}", &num_blocks.to_string()),
+                    imported_message.replace("{}", &num_blocks.to_string()),
                     TaskType::ImportNBlocks,
                     None,
                 ),
             );
 
+            // Refresh the sidebar
             let _ = cx.update_global::<States, ()>(|this, cx| {
                 this.refresh_blocks_list(cx);
             });
-        });
+        }).detach();
     }
 }

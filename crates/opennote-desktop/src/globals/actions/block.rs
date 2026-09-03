@@ -1,4 +1,4 @@
-use anyhow::{Result, anyhow};
+use anyhow::Result;
 use gpui::App;
 use opennote_models::block::Block;
 use uuid::Uuid;
@@ -43,14 +43,19 @@ pub fn get_block_content(block_id: &Uuid, cx: &mut App) -> Result<String> {
 pub async fn build_block(
     parent_block_id: Option<Uuid>,
     default_block_title: String,
-    embedders: EmbedderEntry,
+    embedders: &EmbedderEntry,
     content: Option<String>,
     text_chunk_size: Option<usize>,
 ) -> Result<Block, anyhow::Error> {
     let mut block = Block::new(parent_block_id, Vec::new());
 
     let payloads = match content {
-        Some(content) => convert_string_to_payloads(block.id, text_chunk_size, content)?,
+        Some(content) => convert_string_to_payloads(
+            block.id,
+            text_chunk_size,
+            content,
+            Some(default_block_title),
+        )?,
         None => vec![build_payload(
             block.id,
             PayloadContentParameters {
@@ -60,9 +65,9 @@ pub async fn build_block(
         )?],
     };
 
-    let mut vectorized_payloads = send_vectorization(payloads, &embedders).await?;
-    if let Some(vectorized_payload) = vectorized_payloads.pop() {
-        block.payloads.push(vectorized_payload);
-    }
+    let vectorized_payloads = send_vectorization(payloads, &embedders).await?;
+
+    block.payloads = vectorized_payloads;
+
     Ok(block)
 }

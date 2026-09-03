@@ -87,6 +87,7 @@ pub fn convert_string_to_payloads(
     block_id: Uuid,
     text_chunk_size: Option<usize>,
     string: String,
+    mut default_title: Option<String>, // Use the default title as the title if supplied
 ) -> Result<Vec<Payload>> {
     let mut payloads: Vec<Payload> = Vec::new();
 
@@ -108,13 +109,36 @@ pub fn convert_string_to_payloads(
             Ok(_) => {
                 // The first chunk is always the title
                 if index == 0 {
-                    payloads.push(build_payload(
-                        block_id,
-                        PayloadContentParameters {
-                            title: Some(String::from_utf8_lossy(&bytes).to_string()),
-                            ..Default::default()
-                        },
-                    )?);
+                    match std::mem::take(&mut default_title) {
+                        Some(mut title) => {
+                            // The title needs to be on the first line
+                            title.push('\n');
+
+                            payloads.push(build_payload(
+                                block_id,
+                                PayloadContentParameters {
+                                    title: Some(title),
+                                    ..Default::default()
+                                },
+                            )?);
+
+                            payloads.push(build_payload(
+                                block_id,
+                                PayloadContentParameters {
+                                    markdown: Some(String::from_utf8_lossy(&bytes).to_string()),
+                                    ..Default::default()
+                                },
+                            )?);
+                        }
+                        None => payloads.push(build_payload(
+                            block_id,
+                            PayloadContentParameters {
+                                title: Some(String::from_utf8_lossy(&bytes).to_string()),
+                                ..Default::default()
+                            },
+                        )?),
+                    };
+
                     continue;
                 }
 
