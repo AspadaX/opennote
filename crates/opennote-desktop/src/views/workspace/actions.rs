@@ -5,11 +5,15 @@ use gpui_component::Root;
 
 use opennote_data::Databases;
 use opennote_embedder::entry::EmbedderEntry;
-use opennote_models::configurations::fields::VectorDatabaseConfig;
+use opennote_models::{configurations::fields::VectorDatabaseConfig, query::BlockQuery};
+use sanitize_filename::sanitize;
 
 use crate::{
     globals::{
-        actions::{block::build_block, route_helpers::route_create_blocks},
+        actions::{
+            block::{build_block, get_block_content},
+            route_helpers::{route_create_blocks, route_read_blocks},
+        },
         bootstrap::GlobalApplicationBootStrap,
         helpers::{get_language_profile, run_async_background},
         states::{States, helpers::get_states, server_registry::ServerStates},
@@ -399,33 +403,58 @@ impl Workspace {
         cx: &mut Context<Self>,
     ) {
         let language_profile = get_language_profile(cx).unwrap();
-        let importing_message = language_profile["importing_n_blocks"].clone();
-        let imported_message = language_profile["imported_n_blocks"].clone();
-        let import_failed_message = language_profile["block_import_failed"].clone();
+        let exporting_message = language_profile["exporting_n_blocks"].clone();
+        let exported_message = language_profile["exported_n_blocks"].clone();
+        let export_failed_message = language_profile["block_export_failed"].clone();
 
         // Open a dialogue to pick a directory
-        let prompt = cx.prompt_for_new_path(
-            &std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from(".")),
-            None,
-        );
+        let prompt = cx.prompt_for_paths(PathPromptOptions {
+            files: false,
+            directories: true,
+            multiple: false,
+            prompt: None,
+        });
 
         let window = window.window_handle();
 
-        let executor = cx.background_executor();
-        let tokio_handle = tokio::runtime::Handle::current();
-
-        let mut results = Vec::new();
-
         cx.spawn(async move |this: WeakEntity<Self>, cx: &mut AsyncApp| {
             // Get the selected directory path for export
-            let mut path = match prompt.await {
+            let path = match prompt.await {
                 Ok(Ok(Some(path))) => path,
                 Ok(Ok(None)) | Err(_) => return,
-                Ok(Err(err)) => return,
+                Ok(Err(_err)) => return,
             };
 
+            let databases = cx
+                .read_global::<GlobalApplicationBootStrap, Databases>(|this, _cx| {
+                    this.0.databases.clone()
+                })
+                .unwrap();
+
+            let (server_name, server_state) = cx
+                .read_global::<States, (SharedString, ServerStates)>(|this, _cx| {
+                    this.get_active_server(window.window_id())
+                })
+                .unwrap();
+
+            let mut blocks_to_export = Vec::new();
+
+            // Acquire all selected notes' names and contents
+            let _ = this.update(cx, |this, cx| {
+                this.sidebar.update(cx, |this, cx| {
+                    if let Some(tree_state) = this.get_tree_state(&server_name) {
+                        tree_state.update(cx, |this, cx| {
+                            let block_ids = this.take_selected_block_ids();
+                            blocks_to_export.extend(block_ids);
+
+                            cx.notify();
+                        });
+                    }
+                });
+            });
+
             let task = TaskInformation::new(
-                importing_message.replace("{}", &num_blocks.to_string()),
+                exporting_message.replace("{}", &blocks_to_export.len().to_string()),
                 TaskType::ExportNBlocks,
                 true,
             );
@@ -435,53 +464,71 @@ impl Workspace {
             // Register task in the scheduler.
             register_long_running_task::<ExportNBlocksNotification>(window, cx, task);
 
-            let (databases, embedders, document_chunk_size, vector_database_config) = cx
-                .read_global::<GlobalApplicationBootStrap, (Databases, EmbedderEntry, usize, VectorDatabaseConfig)>(
-                    |this, _cx| {
-                        let configurations = this.get_configurations();
+            let executor = cx.background_executor();
+            let tokio_handle = tokio::runtime::Handle::current();
 
-                        (
-                            this.0.databases.clone(),
-                            this.0.embedders.clone(),
-                            configurations.user.search.document_chunk_size,
-                            configurations.system.vector_database.clone(),
-                        )
-                    },
+            let result = run_async_background(executor, tokio_handle, async move {
+                let blocks = match route_read_blocks(
+                    &server_name,
+                    &server_state,
+                    &databases,
+                    &BlockQuery::ByIds(blocks_to_export),
+                    false,
+                    true,
                 )
-                .unwrap();
+                .await
+                {
+                    Ok(blocks) => blocks,
+                    Err(error) => return Err(error),
+                };
 
-            let (server_name, server_states) = cx
-                .read_global::<States, (SharedString, ServerStates)>(|this, _cx| {
-                    this.get_active_server(window.window_id())
-                })
-                .unwrap();
+                let num_blocks = blocks.len();
 
-            let mut blocks_to_export = Vec::new();
+                for block in blocks {
+                    // Prevent filenames that include sensitive characters like / etc.
+                    let title = sanitize(block.get_title());
 
-            // Acquire all selected notes' names and contents
-            this.update(cx, |this, cx| {
-                this.sidebar.update(cx, |this, cx| {
-                    if let Some(tree_state) = this.get_tree_state(&server_name) {
-                        tree_state.update(cx, |this, cx| {
-                            let block_ids = this.take_selected_block_ids();
+                    // Construct save paths for each note
+                    let filepath = path[0].join(title).with_extension("md");
 
-                            let states = get_states(cx);
+                    // then write files
+                    std::fs::write(filepath, block.get_text_content().as_bytes())?;
+                }
 
-                            blocks_to_export.extend(states.get_blocks(&block_ids));
+                Ok(num_blocks)
+            })
+            .await;
 
-                            cx.notify();
-                        });
-                    }
-                });
-            });
+            let num_blocks = match result {
+                Ok(num_blocks) => num_blocks,
+                Err(error) => {
+                    log::error!("Failed to export blocks: {}", error);
+                    register_long_running_completion::<ExportNBlocksNotification>(
+                        window,
+                        cx,
+                        TaskResult::new(
+                            task_id,
+                            false,
+                            export_failed_message.replace("{}", &error.to_string()),
+                            TaskType::ExportNBlocks,
+                            None,
+                        ),
+                    );
+                    return;
+                }
+            };
 
-            for block in blocks_to_export {
-                // Construct save paths for each note,
-                let filepath = path.join(block.get_title()).with_extension(".md");
-
-                // then write files
-                std::fs::write(path, block.get_text_content().as_bytes()).unwrap();
-            }
+            register_long_running_completion::<ExportNBlocksNotification>(
+                window,
+                cx,
+                TaskResult::new(
+                    task_id,
+                    true,
+                    exported_message.replace("{}", &num_blocks.to_string()),
+                    TaskType::ExportNBlocks,
+                    None,
+                ),
+            );
         })
         .detach();
     }

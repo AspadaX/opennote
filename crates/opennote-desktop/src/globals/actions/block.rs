@@ -15,6 +15,12 @@ use crate::globals::{
     states::helpers::get_states,
 };
 
+/// Get the full content of the specified block from the originated server.
+///
+/// The get method provided by the block is only able to get the content that it caches.
+/// Since in the desktop app we treat each block as a reference,
+/// each block won't reserve the full payloads in the cache.
+/// Therefore, we will need to use this method to retreive the actual full content of a block.
 pub fn get_block_content(block_id: &Uuid, cx: &mut App) -> Result<String> {
     let block_ids = vec![*block_id];
 
