@@ -15,6 +15,7 @@ actions!(
         ToggleSettingsPanel,
         CreateOneBlock,
         OpenNewWindow,
+        ImportFiles,
         NextTab,
         PreviousTab,
         CloseActiveTab,

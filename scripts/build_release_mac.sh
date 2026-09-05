@@ -14,7 +14,7 @@ main() {
     uv run ./appify/__main__.py \
         --executable ./target/release/opennote-desktop \
         --bundle ./target/release/opennote.app \
-        --icon-png ./assets/logo.png
+        --icon-png ./assets/icon.png
 
     echo "Packaging DMG..."
     DMG_NAME="opennote-macos.dmg"
