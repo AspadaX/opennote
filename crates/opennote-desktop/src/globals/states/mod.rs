@@ -138,6 +138,20 @@ impl States {
         None
     }
 
+    pub fn get_blocks(&self, block_ids: &[Uuid]) -> Vec<Block> {
+        let mut blocks = Vec::new();
+
+        for (_name, server) in self.get_servers().iter() {
+            blocks.extend(
+                block_ids
+                    .iter()
+                    .filter_map(|item| server.blocks.get(item).cloned()),
+            );
+        }
+
+        blocks
+    }
+
     /// Get all blocks ids from all servers
     pub fn get_all_blocks_ids(&self) -> Vec<Uuid> {
         let mut block_ids = Vec::new();

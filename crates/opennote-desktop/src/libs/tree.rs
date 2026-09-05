@@ -218,6 +218,22 @@ impl TreeState {
         cx.notify();
     }
 
+    /// This method will take the selected block ids out and left an empty vec, 
+    /// or a None for single-selected blocks. 
+    /// 
+    /// Use this method when you need to clear the selections. 
+    pub fn take_selected_block_ids(&mut self) -> Vec<Uuid> {
+        let mut blocks = Vec::new();
+
+        if let Some(selected_block) = self.selected_block.take() {
+            blocks.push(selected_block)
+        }
+
+        blocks.extend(self.selected_blocks.drain());
+
+        blocks
+    }
+
     /// Determine whether the item is single selected.
     pub fn is_single_selected(&self, item_id: Uuid) -> bool {
         let mut is_single_selected = false;

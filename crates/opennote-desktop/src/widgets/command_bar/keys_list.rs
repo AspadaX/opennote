@@ -10,8 +10,8 @@ use crate::{
     key_mappings::{
         helpers::{get_keystrokes_as_shared_string, match_action_to_language},
         mappings::{
-            CreateOneBlock, ImportFiles, OpenNewWindow, ToggleCommandBar, ToggleSettingsPanel,
-            ToggleSidebar,
+            CreateOneBlock, ExportFiles, ImportFiles, OpenNewWindow, ToggleCommandBar,
+            ToggleSettingsPanel, ToggleSidebar,
         },
     },
 };
@@ -33,6 +33,7 @@ impl KeysList {
             Box::new(ToggleSettingsPanel),
             Box::new(OpenNewWindow),
             Box::new(ImportFiles),
+            Box::new(ExportFiles),
         ];
 
         let actions_keymaps: Vec<(Box<dyn Action>, Option<SharedString>)> = actions

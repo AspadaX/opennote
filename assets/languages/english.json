@@ -12,6 +12,7 @@
   "workspace::ToggleSettingsPanel": "Toggle settings panel",
   "workspace::OpenNewWindow": "Open new window",
   "workspace::ImportFiles": "Import files",
+  "workspace::ExportFiles": "Export files",
   "new_note": "New Note",
   "new_window": "New Window",
   "search": "Search",

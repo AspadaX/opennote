@@ -16,6 +16,7 @@ actions!(
         CreateOneBlock,
         OpenNewWindow,
         ImportFiles,
+        ExportFiles,
         NextTab,
         PreviousTab,
         CloseActiveTab,
