@@ -8,7 +8,7 @@ use gpui::{
     Window, div, prelude::*, px,
 };
 use gpui_component::{
-    Sizable,
+    ActiveTheme, Sizable,
     description_list::{DescriptionItem, DescriptionList},
     v_flex,
 };
@@ -222,32 +222,44 @@ impl Pane {
     fn create_commmand_board(cx: &mut Context<'_, Pane>) -> Div {
         let language_profile = get_language_profile(cx).unwrap();
 
-        v_flex().size_full().child(
-            div().w_48().my_auto().mx_auto().child(
-                DescriptionList::new()
-                    .columns(1)
-                    .bordered(false)
-                    .large()
-                    .children([
-                        DescriptionItem::new(language_profile["search"].to_string()).value(
-                            get_keystrokes_as_shared_string(cx, ToggleSearchBar.boxed_clone())
-                                .unwrap_or("".into()),
-                        ),
-                        DescriptionItem::new(language_profile["commands"].to_string()).value(
-                            get_keystrokes_as_shared_string(cx, ToggleCommandBar.boxed_clone())
-                                .unwrap_or("".into()),
-                        ),
-                        DescriptionItem::new(language_profile["new_note"].to_string()).value(
-                            get_keystrokes_as_shared_string(cx, CreateOneBlock.boxed_clone())
-                                .unwrap_or("".into()),
-                        ),
-                        DescriptionItem::new(language_profile["new_window"].to_string()).value(
-                            get_keystrokes_as_shared_string(cx, OpenNewWindow.boxed_clone())
-                                .unwrap_or("".into()),
-                        ),
-                    ]),
-            ),
-        )
+        v_flex()
+            .relative()
+            .size_full()
+            .child(
+                div().w_48().my_auto().mx_auto().child(
+                    DescriptionList::new()
+                        .columns(1)
+                        .bordered(false)
+                        .large()
+                        .children([
+                            DescriptionItem::new(language_profile["search"].to_string()).value(
+                                get_keystrokes_as_shared_string(cx, ToggleSearchBar.boxed_clone())
+                                    .unwrap_or("".into()),
+                            ),
+                            DescriptionItem::new(language_profile["commands"].to_string()).value(
+                                get_keystrokes_as_shared_string(cx, ToggleCommandBar.boxed_clone())
+                                    .unwrap_or("".into()),
+                            ),
+                            DescriptionItem::new(language_profile["new_note"].to_string()).value(
+                                get_keystrokes_as_shared_string(cx, CreateOneBlock.boxed_clone())
+                                    .unwrap_or("".into()),
+                            ),
+                            DescriptionItem::new(language_profile["new_window"].to_string()).value(
+                                get_keystrokes_as_shared_string(cx, OpenNewWindow.boxed_clone())
+                                    .unwrap_or("".into()),
+                            ),
+                        ]),
+                ),
+            )
+            .child(
+                div()
+                    .absolute()
+                    .bottom_4()
+                    .right_4()
+                    .text_xs()
+                    .text_color(cx.theme().description_list_label_foreground)
+                    .child(concat!("v", env!("CARGO_PKG_VERSION"))),
+            )
     }
 
     fn update_editor_with_selected_block(&mut self, cx: &mut Context<'_, Pane>) {
