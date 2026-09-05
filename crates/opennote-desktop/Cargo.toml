@@ -35,3 +35,4 @@ rust-embed = "8.11.0"
 fast_log = "1.7.7"
 smallvec = "1.15.1"
 async-trait.workspace = true
+sanitize-filename = "0.6.0"

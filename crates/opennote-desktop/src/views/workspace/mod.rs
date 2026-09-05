@@ -120,6 +120,7 @@ impl Render for Workspace {
             .on_action(cx.listener(Self::close_active_tab))
             .on_action(cx.listener(Self::open_new_window))
             .on_action(cx.listener(Self::import_files))
+            .on_action(cx.listener(Self::export_files))
             .children(notification)
             .children(dialogue)
     }

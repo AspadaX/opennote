@@ -11,8 +11,10 @@ pub enum TaskType {
     ChunkBlock { block_id: Uuid },
     /// Update n blocks
     UpdateNBlocks,
-    /// Import N blocks
+    /// Import n blocks
     ImportNBlocks,
+    /// Export n blocks
+    ExportNBlocks,
 }
 
 /// It stores the task results
