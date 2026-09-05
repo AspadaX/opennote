@@ -11,7 +11,7 @@ use sanitize_filename::sanitize;
 use crate::{
     globals::{
         actions::{
-            block::{build_block, get_block_content},
+            block::build_block,
             route_helpers::{route_create_blocks, route_read_blocks},
         },
         bootstrap::GlobalApplicationBootStrap,
@@ -246,7 +246,7 @@ impl Workspace {
 
         let window = window.window_handle();
 
-        cx.spawn(async move |_this, cx| {
+        cx.spawn(async move |this, cx| {
             let paths = match prompt.await {
                 Ok(Ok(Some(path))) => path,
                 Ok(Ok(None)) | Err(_) => return,
@@ -286,6 +286,20 @@ impl Workspace {
                 })
                 .unwrap();
 
+            // Acquire a single-selected block as the imported documents' parent,
+            // if any
+            let mut parent_block_id = None;
+            let _ = this.update(cx, |this, cx| {
+                this.sidebar.update(cx, |this, cx| {
+                    if let Some(tree_state) = this.get_tree_state(&server_name) {
+                        tree_state.update(cx, |this, cx| {
+                            parent_block_id = this.take_single_selected_block_id();
+                            cx.notify();
+                        });
+                    }
+                });
+            });
+
             let executor = cx.background_executor();
             let tokio_handle = tokio::runtime::Handle::current();
 
@@ -313,7 +327,7 @@ impl Workspace {
                 let result = run_async_background(
                     executor, tokio_handle.clone(), async move {
                         build_block(
-                            None,
+                            parent_block_id,
                             raw_file_name,
                             &embedders,
                             Some(content),

@@ -18,7 +18,7 @@ use crate::{
         actions::{delete_n_blocks, update_parent},
         states::States,
     },
-    key_mappings::mappings::{CreateOneBlock, DeleteBlocks},
+    key_mappings::mappings::{CreateOneBlock, DeleteBlocks, ExportFiles, ImportFiles},
     libs::{tabs::drag::DraggedItem, tree::TreeState},
     widgets::sidebar::{BlockState, OpenNoteSidebar, OpenNoteSidebarEvent},
 };
@@ -205,6 +205,14 @@ pub fn create_tree_list_item(
                         Box::new(CreateOneBlock),
                     )
                     .menu(&language_profile["delete_blocks"], Box::new(DeleteBlocks))
+                    .menu(
+                        &language_profile["workspace::ImportFiles"],
+                        Box::new(ImportFiles),
+                    )
+                    .menu(
+                        &language_profile["workspace::ExportFiles"],
+                        Box::new(ExportFiles),
+                    )
                 }),
         )
 }
