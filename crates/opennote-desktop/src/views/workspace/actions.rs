@@ -5,7 +5,10 @@ use gpui_component::Root;
 
 use opennote_data::Databases;
 use opennote_embedder::entry::EmbedderEntry;
-use opennote_models::{configurations::fields::VectorDatabaseConfig, query::BlockQuery};
+use opennote_models::{
+    configurations::fields::VectorDatabaseConfig, constants::DESKTOP_SETTINGS_PANEL_NAME,
+    query::BlockQuery,
+};
 use sanitize_filename::sanitize;
 
 use crate::{
@@ -28,6 +31,7 @@ use crate::{
         CloseActiveTab, CreateOneBlock, ExportFiles, ImportFiles, NextTab, OpenNewWindow,
         PreviousTab, ToggleCommandBar, ToggleSearchBar, ToggleSettingsPanel, ToggleSidebar,
     },
+    window::{create_main_window_option, format_window_title},
 };
 
 use super::Workspace;
@@ -152,9 +156,14 @@ impl Workspace {
     ) {
         let settings_panel = self.settings_panel.clone();
         let _ = cx
-            .open_window(WindowOptions::default(), |_this, cx| {
-                cx.new(|cx| Root::new(settings_panel, window, cx))
-            })
+            .open_window(
+                create_main_window_option(format_window_title(
+                    Some(DESKTOP_SETTINGS_PANEL_NAME),
+                    None,
+                    None,
+                )),
+                |_this, cx| cx.new(|cx| Root::new(settings_panel, window, cx)),
+            )
             .unwrap();
     }
 
@@ -194,15 +203,22 @@ impl Workspace {
         _window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        cx.open_window(WindowOptions::default(), |window, cx| {
-            let view = cx.new(|cx| {
-                let workspace =
-                    Workspace::new(window, cx).expect("Workspace initialization failed");
-                workspace
-            });
+        cx.open_window(
+            create_main_window_option(format_window_title(
+                None,
+                None,
+                None,
+            )),
+            |window, cx| {
+                let view = cx.new(|cx| {
+                    let workspace =
+                        Workspace::new(window, cx).expect("Workspace initialization failed");
+                    workspace
+                });
 
-            cx.new(|cx| Root::new(view, window, cx))
-        })
+                cx.new(|cx| Root::new(view, window, cx))
+            },
+        )
         .expect("Failed to open window");
     }
 

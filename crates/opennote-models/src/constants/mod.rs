@@ -15,6 +15,11 @@ pub const SQLITE_VECTOR_DATABASE_FILE_EXTENSION: &str = "sqlite";
 pub const APP_DATA_FOLDER_NAME: &str = "opennote";
 pub const LOCAL_SERVER_NAME: &str = "local";
 pub const KEY_MAPPINGS_FILE_NAME: &str = "key_mappings.json";
+pub const DESKTOP_APP_NAME: &str = "OpenNote";
+pub const DESKTOP_TITLE_SEPARATOR: &str = " - ";
+pub const DESKTOP_SETTINGS_PANEL_NAME: &str = "Settings";
+pub const LOADING_WINDOW_WIDTH: f32 = 420.;
+pub const LOADING_WINDOW_HEIGHT: f32 = 240.;
 
 /*
  * Server Only
