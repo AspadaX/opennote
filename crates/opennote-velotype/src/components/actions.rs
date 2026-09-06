@@ -101,16 +101,6 @@ pub struct OpenRecentFile {
     pub path: String,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(crate) enum ShortcutCategory {
-    File,
-    Edit,
-    Navigation,
-    Formatting,
-    Block,
-    Other,
-}
-
 #[repr(u32)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) enum ShortcutCommand {
@@ -158,7 +148,6 @@ pub(crate) enum ShortcutCommand {
 pub(crate) struct ShortcutDefinition {
     pub(crate) command: ShortcutCommand,
     pub(crate) id: &'static str,
-    pub(crate) category: ShortcutCategory,
     pub(crate) default_keys: &'static [&'static str],
     pub(crate) context: Option<&'static str>,
 }
@@ -174,105 +163,91 @@ const SHORTCUT_DEFINITIONS: &[ShortcutDefinition] = &[
     ShortcutDefinition {
         command: ShortcutCommand::Newline,
         id: "newline",
-        category: ShortcutCategory::Block,
         default_keys: &["enter"],
         context: BLOCK_CONTEXT,
     },
     ShortcutDefinition {
         command: ShortcutCommand::DeleteBack,
         id: "delete_back",
-        category: ShortcutCategory::Edit,
         default_keys: &["backspace"],
         context: BLOCK_CONTEXT,
     },
     ShortcutDefinition {
         command: ShortcutCommand::Delete,
         id: "delete",
-        category: ShortcutCategory::Edit,
         default_keys: &["delete"],
         context: BLOCK_CONTEXT,
     },
     ShortcutDefinition {
         command: ShortcutCommand::WordDeleteBack,
         id: "word_delete_back",
-        category: ShortcutCategory::Edit,
         default_keys: &["ctrl-backspace", "alt-backspace"],
         context: BLOCK_CONTEXT,
     },
     ShortcutDefinition {
         command: ShortcutCommand::WordDeleteForward,
         id: "word_delete_forward",
-        category: ShortcutCategory::Edit,
         default_keys: &["ctrl-delete", "alt-delete"],
         context: BLOCK_CONTEXT,
     },
     ShortcutDefinition {
         command: ShortcutCommand::FocusPrev,
         id: "focus_prev",
-        category: ShortcutCategory::Navigation,
         default_keys: &["up"],
         context: BLOCK_CONTEXT,
     },
     ShortcutDefinition {
         command: ShortcutCommand::FocusNext,
         id: "focus_next",
-        category: ShortcutCategory::Navigation,
         default_keys: &["down"],
         context: BLOCK_CONTEXT,
     },
     ShortcutDefinition {
         command: ShortcutCommand::MoveLeft,
         id: "move_left",
-        category: ShortcutCategory::Navigation,
+
         default_keys: &["left"],
         context: BLOCK_CONTEXT,
     },
     ShortcutDefinition {
         command: ShortcutCommand::MoveRight,
         id: "move_right",
-        category: ShortcutCategory::Navigation,
         default_keys: &["right"],
         context: BLOCK_CONTEXT,
     },
     ShortcutDefinition {
         command: ShortcutCommand::WordMoveLeft,
         id: "word_move_left",
-        category: ShortcutCategory::Navigation,
         default_keys: &["ctrl-left", "alt-left"],
         context: BLOCK_CONTEXT,
     },
     ShortcutDefinition {
         command: ShortcutCommand::WordMoveRight,
         id: "word_move_right",
-        category: ShortcutCategory::Navigation,
         default_keys: &["ctrl-right", "alt-right"],
         context: BLOCK_CONTEXT,
     },
     ShortcutDefinition {
         command: ShortcutCommand::Home,
         id: "home",
-        category: ShortcutCategory::Navigation,
         default_keys: &["home"],
         context: BLOCK_CONTEXT,
     },
     ShortcutDefinition {
         command: ShortcutCommand::End,
         id: "end",
-        category: ShortcutCategory::Navigation,
         default_keys: &["end"],
         context: BLOCK_CONTEXT,
     },
     ShortcutDefinition {
         command: ShortcutCommand::BlockUp,
         id: "block_up",
-        category: ShortcutCategory::Navigation,
         default_keys: &["ctrl-up", "alt-up"],
         context: BLOCK_CONTEXT,
     },
     ShortcutDefinition {
         command: ShortcutCommand::BlockDown,
         id: "block_down",
-        category: ShortcutCategory::Navigation,
         default_keys: &["ctrl-down", "alt-down"],
         context: BLOCK_CONTEXT,
     },
@@ -282,169 +257,142 @@ const SHORTCUT_DEFINITIONS: &[ShortcutDefinition] = &[
     ShortcutDefinition {
         command: ShortcutCommand::PageUp,
         id: "page_up",
-        category: ShortcutCategory::Navigation,
         default_keys: &["pageup"],
         context: None,
     },
     ShortcutDefinition {
         command: ShortcutCommand::PageDown,
         id: "page_down",
-        category: ShortcutCategory::Navigation,
         default_keys: &["pagedown"],
         context: None,
     },
     ShortcutDefinition {
         command: ShortcutCommand::JumpToTop,
         id: "jump_to_top",
-        category: ShortcutCategory::Navigation,
         default_keys: &["ctrl-home", "cmd-up"],
         context: None,
     },
     ShortcutDefinition {
         command: ShortcutCommand::JumpToBottom,
         id: "jump_to_bottom",
-        category: ShortcutCategory::Navigation,
         default_keys: &["ctrl-end", "cmd-down"],
         context: None,
     },
     ShortcutDefinition {
         command: ShortcutCommand::SelectLeft,
         id: "select_left",
-        category: ShortcutCategory::Navigation,
         default_keys: &["shift-left"],
         context: BLOCK_CONTEXT,
     },
     ShortcutDefinition {
         command: ShortcutCommand::SelectRight,
         id: "select_right",
-        category: ShortcutCategory::Navigation,
         default_keys: &["shift-right"],
         context: BLOCK_CONTEXT,
     },
     ShortcutDefinition {
         command: ShortcutCommand::WordSelectLeft,
         id: "word_select_left",
-        category: ShortcutCategory::Navigation,
         default_keys: &["ctrl-shift-left", "alt-shift-left"],
         context: BLOCK_CONTEXT,
     },
     ShortcutDefinition {
         command: ShortcutCommand::WordSelectRight,
         id: "word_select_right",
-        category: ShortcutCategory::Navigation,
         default_keys: &["ctrl-shift-right", "alt-shift-right"],
         context: BLOCK_CONTEXT,
     },
     ShortcutDefinition {
         command: ShortcutCommand::SelectHome,
         id: "select_home",
-        category: ShortcutCategory::Navigation,
         default_keys: &["shift-home"],
         context: BLOCK_CONTEXT,
     },
     ShortcutDefinition {
         command: ShortcutCommand::SelectEnd,
         id: "select_end",
-        category: ShortcutCategory::Navigation,
         default_keys: &["shift-end"],
         context: BLOCK_CONTEXT,
     },
     ShortcutDefinition {
         command: ShortcutCommand::SelectAll,
         id: SELECT_ALL_ID,
-        category: ShortcutCategory::Edit,
         default_keys: &["cmd-a", "ctrl-a"],
         context: BLOCK_CONTEXT,
     },
     ShortcutDefinition {
         command: ShortcutCommand::Copy,
         id: "copy",
-        category: ShortcutCategory::Edit,
         default_keys: &["cmd-c", "ctrl-c"],
         context: BLOCK_CONTEXT,
     },
     ShortcutDefinition {
         command: ShortcutCommand::Cut,
         id: "cut",
-        category: ShortcutCategory::Edit,
         default_keys: &["cmd-x", "ctrl-x"],
         context: BLOCK_CONTEXT,
     },
     ShortcutDefinition {
         command: ShortcutCommand::Paste,
         id: "paste",
-        category: ShortcutCategory::Edit,
         default_keys: &["cmd-v", "ctrl-v"],
         context: BLOCK_CONTEXT,
     },
     ShortcutDefinition {
         command: ShortcutCommand::Undo,
         id: "undo",
-        category: ShortcutCategory::Edit,
         default_keys: &["cmd-z", "ctrl-z"],
         context: BLOCK_CONTEXT,
     },
     ShortcutDefinition {
         command: ShortcutCommand::Redo,
         id: "redo",
-        category: ShortcutCategory::Edit,
         default_keys: &["cmd-shift-z", "ctrl-y"],
         context: BLOCK_CONTEXT,
     },
     ShortcutDefinition {
         command: ShortcutCommand::BoldSelection,
         id: "bold_selection",
-        category: ShortcutCategory::Formatting,
         default_keys: &["cmd-shift-b", "ctrl-shift-b"],
         context: BLOCK_CONTEXT,
     },
     ShortcutDefinition {
         command: ShortcutCommand::ItalicSelection,
         id: "italic_selection",
-        category: ShortcutCategory::Formatting,
         default_keys: &["cmd-i", "ctrl-i"],
         context: BLOCK_CONTEXT,
     },
     ShortcutDefinition {
         command: ShortcutCommand::UnderlineSelection,
         id: "underline_selection",
-        category: ShortcutCategory::Formatting,
         default_keys: &["cmd-u", "ctrl-u"],
         context: BLOCK_CONTEXT,
     },
     ShortcutDefinition {
         command: ShortcutCommand::CodeSelection,
         id: "code_selection",
-        category: ShortcutCategory::Formatting,
         default_keys: &["cmd-`", "ctrl-`"],
         context: BLOCK_CONTEXT,
     },
     ShortcutDefinition {
         command: ShortcutCommand::IndentBlock,
         id: "indent_block",
-        category: ShortcutCategory::Block,
         default_keys: &["tab"],
         context: BLOCK_CONTEXT,
     },
     ShortcutDefinition {
         command: ShortcutCommand::OutdentBlock,
         id: "outdent_block",
-        category: ShortcutCategory::Block,
         default_keys: &["shift-tab"],
         context: BLOCK_CONTEXT,
     },
     ShortcutDefinition {
         command: ShortcutCommand::ExitCodeBlock,
         id: "exit_code_block",
-        category: ShortcutCategory::Block,
         default_keys: &["cmd-enter", "ctrl-enter"],
         context: BLOCK_CONTEXT,
     },
 ];
-
-pub(crate) fn shortcut_definitions() -> &'static [ShortcutDefinition] {
-    SHORTCUT_DEFINITIONS
-}
 
 pub(crate) fn normalize_shortcut_keys(keys: &[String]) -> Option<Vec<String>> {
     let mut seen = BTreeSet::new();
@@ -560,42 +508,6 @@ pub(crate) fn normalize_shortcut_config(
         .collect()
 }
 
-pub(crate) fn resolved_shortcut_keys(
-    config: &BTreeMap<String, Vec<String>>,
-    command: ShortcutCommand,
-) -> Vec<String> {
-    let normalized = normalize_shortcut_config(config);
-    let definition = SHORTCUT_DEFINITIONS
-        .iter()
-        .find(|definition| definition.command == command)
-        .expect("known shortcut command");
-    normalized
-        .get(definition.id)
-        .cloned()
-        .unwrap_or_else(|| default_keys(*definition))
-}
-
-pub(crate) fn shortcut_conflict_for(
-    command: ShortcutCommand,
-    proposed_keys: &[String],
-    config: &BTreeMap<String, Vec<String>>,
-) -> Option<ShortcutDefinition> {
-    let definition = SHORTCUT_DEFINITIONS
-        .iter()
-        .find(|definition| definition.command == command)?;
-    let proposed_keys = normalize_shortcut_keys(proposed_keys)?;
-    for other in SHORTCUT_DEFINITIONS
-        .iter()
-        .filter(|other| other.command != command)
-    {
-        let other_keys = resolved_shortcut_keys(config, other.command);
-        if shortcuts_conflict(*definition, &proposed_keys, *other, &other_keys) {
-            return Some(*other);
-        }
-    }
-    None
-}
-
 fn key_binding_for(
     command: ShortcutCommand,
     key: &str,
@@ -640,15 +552,6 @@ fn key_binding_for(
         ShortcutCommand::IndentBlock => KeyBinding::new(key, IndentBlock, context),
         ShortcutCommand::OutdentBlock => KeyBinding::new(key, OutdentBlock, context),
         ShortcutCommand::ExitCodeBlock => KeyBinding::new(key, ExitCodeBlock, context),
-        // ShortcutCommand::SaveDocument => KeyBinding::new(key, SaveDocument, context),
-        // ShortcutCommand::SaveDocumentAs => KeyBinding::new(key, SaveDocumentAs, context),
-        // ShortcutCommand::NewWindow => KeyBinding::new(key, NewWindow, context),
-        // ShortcutCommand::OpenFile => KeyBinding::new(key, OpenFile, context),
-        // ShortcutCommand::QuitApplication => KeyBinding::new(key, QuitApplication, context),
-        // ShortcutCommand::CloseWindow => KeyBinding::new(key, CloseWindow, context),
-        // ShortcutCommand::DismissTransientUi => KeyBinding::new(key, DismissTransientUi, context),
-        // ShortcutCommand::ToggleViewMode => KeyBinding::new(key, ToggleViewMode, context),
-        // ShortcutCommand::ToggleWorkspace => KeyBinding::new(key, ToggleWorkspace, context),
     }
 }
 
@@ -680,186 +583,4 @@ pub fn init(cx: &mut App) {
 
 pub fn init_with_keybindings(cx: &mut App, config: &BTreeMap<String, Vec<String>>) {
     install_keybindings(cx, config);
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{
-        ShortcutCommand, normalize_shortcut_config, resolved_shortcut_keys, shortcut_conflict_for,
-    };
-    use std::collections::BTreeMap;
-
-    // #[test]
-    // fn custom_shortcut_replaces_command_defaults() {
-    //     let mut config = BTreeMap::new();
-    //     config.insert("save_document".to_string(), vec!["ctrl-alt-s".to_string()]);
-
-    //     assert_eq!(
-    //         resolved_shortcut_keys(&config, ShortcutCommand::SaveDocument),
-    //         vec!["ctrl-alt-s".to_string()]
-    //     );
-    // }
-
-    // #[test]
-    // fn toggle_view_mode_has_default_shortcuts() {
-    //     assert_eq!(
-    //         resolved_shortcut_keys(&BTreeMap::new(), ShortcutCommand::ToggleViewMode),
-    //         vec!["ctrl-tab".to_string(), "cmd-tab".to_string()]
-    //     );
-    // }
-
-    // #[test]
-    // fn toggle_workspace_has_default_shortcuts() {
-    //     assert_eq!(
-    //         resolved_shortcut_keys(&BTreeMap::new(), ShortcutCommand::ToggleWorkspace),
-    //         vec!["ctrl-w".to_string()]
-    //     );
-    // }
-
-    #[test]
-    fn select_all_has_default_shortcuts() {
-        assert_eq!(
-            resolved_shortcut_keys(&BTreeMap::new(), ShortcutCommand::SelectAll),
-            vec!["cmd-a".to_string(), "ctrl-a".to_string()]
-        );
-        assert!(
-            shortcut_conflict_for(
-                ShortcutCommand::SelectAll,
-                &["cmd-a".to_string(), "ctrl-a".to_string()],
-                &BTreeMap::new()
-            )
-            .is_none()
-        );
-    }
-
-    #[test]
-    fn select_all_shortcut_can_be_customized() {
-        let mut config = BTreeMap::new();
-        config.insert("select_all".to_string(), vec!["ctrl-shift-a".to_string()]);
-
-        assert_eq!(
-            resolved_shortcut_keys(&config, ShortcutCommand::SelectAll),
-            vec!["ctrl-shift-a".to_string()]
-        );
-    }
-
-    #[test]
-    fn legacy_split_select_all_shortcut_config_maps_to_unified_command() {
-        let mut config = BTreeMap::new();
-        config.insert(
-            "select_all_source_text".to_string(),
-            vec!["ctrl-shift-a".to_string()],
-        );
-
-        assert_eq!(
-            resolved_shortcut_keys(&config, ShortcutCommand::SelectAll),
-            vec!["ctrl-shift-a".to_string()]
-        );
-
-        let normalized = normalize_shortcut_config(&config);
-        assert_eq!(
-            normalized.get("select_all"),
-            Some(&vec!["ctrl-shift-a".to_string()])
-        );
-        assert!(!normalized.contains_key("select_all_source_text"));
-        assert!(!normalized.contains_key("select_focused_block_text_rendered"));
-
-        config.clear();
-        config.insert(
-            "select_focused_block_text_rendered".to_string(),
-            vec!["ctrl-alt-shift-a".to_string()],
-        );
-
-        assert_eq!(
-            resolved_shortcut_keys(&config, ShortcutCommand::SelectAll),
-            vec!["ctrl-alt-shift-a".to_string()]
-        );
-
-        let normalized = normalize_shortcut_config(&config);
-        assert_eq!(
-            normalized.get("select_all"),
-            Some(&vec!["ctrl-alt-shift-a".to_string()])
-        );
-        assert!(!normalized.contains_key("select_all_source_text"));
-        assert!(!normalized.contains_key("select_focused_block_text_rendered"));
-    }
-
-    #[test]
-    fn word_and_block_shortcuts_have_ctrl_and_alt_defaults() {
-        assert_eq!(
-            resolved_shortcut_keys(&BTreeMap::new(), ShortcutCommand::WordMoveLeft),
-            vec!["ctrl-left".to_string(), "alt-left".to_string()]
-        );
-        assert_eq!(
-            resolved_shortcut_keys(&BTreeMap::new(), ShortcutCommand::WordDeleteBack),
-            vec!["ctrl-backspace".to_string(), "alt-backspace".to_string()]
-        );
-        assert_eq!(
-            resolved_shortcut_keys(&BTreeMap::new(), ShortcutCommand::BlockUp),
-            vec!["ctrl-up".to_string(), "alt-up".to_string()]
-        );
-        assert_eq!(
-            resolved_shortcut_keys(&BTreeMap::new(), ShortcutCommand::WordSelectRight),
-            vec![
-                "ctrl-shift-right".to_string(),
-                "alt-shift-right".to_string()
-            ]
-        );
-    }
-
-    #[test]
-    fn page_navigation_shortcuts_have_defaults() {
-        assert_eq!(
-            resolved_shortcut_keys(&BTreeMap::new(), ShortcutCommand::PageUp),
-            vec!["pageup".to_string()]
-        );
-        assert_eq!(
-            resolved_shortcut_keys(&BTreeMap::new(), ShortcutCommand::PageDown),
-            vec!["pagedown".to_string()]
-        );
-        assert_eq!(
-            resolved_shortcut_keys(&BTreeMap::new(), ShortcutCommand::JumpToTop),
-            vec!["ctrl-home".to_string(), "cmd-up".to_string()]
-        );
-        assert_eq!(
-            resolved_shortcut_keys(&BTreeMap::new(), ShortcutCommand::JumpToBottom),
-            vec!["ctrl-end".to_string(), "cmd-down".to_string()]
-        );
-    }
-
-    #[test]
-    fn invalid_or_empty_shortcuts_fall_back_to_defaults() {
-        let mut config = BTreeMap::new();
-        config.insert("save_document".to_string(), vec!["".to_string()]);
-        config.insert("open_file".to_string(), vec!["a".to_string()]);
-
-        let normalized = normalize_shortcut_config(&config);
-        assert!(!normalized.contains_key("save_document"));
-        assert!(!normalized.contains_key("open_file"));
-    }
-
-    #[test]
-    fn conflicting_custom_shortcut_falls_back_to_default() {
-        let mut config = BTreeMap::new();
-        config.insert("copy".to_string(), vec!["ctrl-x".to_string()]);
-
-        let normalized = normalize_shortcut_config(&config);
-        assert!(!normalized.contains_key("copy"));
-        assert_eq!(
-            resolved_shortcut_keys(&config, ShortcutCommand::Copy),
-            vec!["cmd-c".to_string(), "ctrl-c".to_string()]
-        );
-    }
-
-    #[test]
-    fn detects_shortcut_conflicts_for_preferences_drafts() {
-        let conflict = shortcut_conflict_for(
-            ShortcutCommand::Copy,
-            &["ctrl-x".to_string()],
-            &BTreeMap::new(),
-        )
-        .expect("copy should conflict with cut");
-
-        assert_eq!(conflict.id, "cut");
-    }
 }

@@ -22,6 +22,8 @@ use crate::components::{
     TableAxisHighlight, TableAxisKind, TableAxisMarker, TableCellPosition, TableColumnAlignment,
     TableData, TableRuntime, UndoCaptureKind, serialize_table_cell_markdown,
 };
+use crate::theme::{BUILTIN_THEME_VELOTYPE_ID, BUILTIN_THEME_VELOTYPE_LIGHT_ID, ThemeManager};
+
 mod document;
 mod events;
 mod export;
@@ -33,7 +35,6 @@ mod selection;
 mod source_mapping;
 mod table_edit;
 mod tree;
-mod update;
 mod window_state;
 mod workspace;
 
@@ -91,10 +92,6 @@ pub struct Editor {
     prev_mounted_run: Option<MountedRun>,
     /// Focus target to restore when the close dialog is dismissed.
     close_dialog_restore_focus: Option<EntityId>,
-    /// Optional informational dialog shown from the Help menu.
-    info_dialog: Option<InfoDialogKind>,
-    /// True while an online update check is running in the background.
-    update_check_in_progress: bool,
     workspace: WorkspaceState,
     table_axis_preview: Option<TableAxisSelection>,
     table_axis_selection: Option<TableAxisSelection>,
@@ -267,19 +264,22 @@ pub enum ViewMode {
     Source,
 }
 
-/// The informational dialogs that can be shown from the Help menu.
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub(crate) enum InfoDialogKind {
-    /// Dialog describing update-check availability.
-    CheckForUpdates,
-    /// Dialog with app name and version information.
-    About,
-}
-
 impl Editor {
     const HISTORY_LIMIT: usize = 200;
     const HISTORY_COALESCE_WINDOW: Duration = Duration::from_millis(1_000);
     const RENDERED_SELECT_ALL_CYCLE_WINDOW: Duration = Duration::from_millis(750);
+
+    /// Switch the theme between dark and light mode
+    pub fn switch_theme(cx: &mut App, switch_to_dark_mode: bool) {
+        let theme_id = match switch_to_dark_mode {
+            true => BUILTIN_THEME_VELOTYPE_ID,
+            false => BUILTIN_THEME_VELOTYPE_LIGHT_ID,
+        };
+
+        let _ = cx.update_global::<ThemeManager, _>(|theme_manager, _cx| {
+            theme_manager.set_theme_by_id(theme_id);
+        });
+    }
 
     pub fn highlight_search_result(&mut self, cx: &mut Context<Self>, highlighted_text: String) {
         let source_text = self.get_editor_value(cx);
@@ -356,8 +356,6 @@ impl Editor {
             row_stride_width: None,
             prev_mounted_run: None,
             close_dialog_restore_focus: None,
-            info_dialog: None,
-            update_check_in_progress: false,
             workspace: WorkspaceState::default(),
             table_axis_preview: None,
             table_axis_selection: None,
