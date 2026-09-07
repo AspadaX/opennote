@@ -118,8 +118,13 @@ impl OpenNoteSidebar {
         &mut self,
         cx: &mut Context<Self>,
         tree_state: Entity<TreeState>,
-        blocks: Vec<Block>,
+        mut blocks: Vec<Block>,
     ) -> Tree {
+        // TODO: Provide users with more sorting methods
+        //
+        // For now this will always sort by alphabetical orders
+        blocks.sort_by_cached_key(|item| (item.get_title(), item.id));
+
         let tree_items = build_blocks_tree(blocks, &mut self.blocks_state);
 
         tree_state.update(cx, |this, cx| {
