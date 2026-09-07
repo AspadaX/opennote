@@ -1,15 +1,13 @@
 use anyhow::Result;
 use gpui::{
-    App, AppContext as _, Bounds, Context, IntoElement, ParentElement as _, Render, SharedString,
-    Styled as _, Subscription, Window, WindowBounds, WindowHandle, WindowOptions, div,
-    prelude::FluentBuilder as _, px, size,
+    App, AppContext as _, Context, IntoElement, ParentElement as _, Render, SharedString,
+    Styled as _, Subscription, Window, WindowHandle, div, prelude::FluentBuilder as _,
 };
 use gpui_component::{
     ActiveTheme as _, Sizable as _, Size, StyledExt as _, Theme, spinner::Spinner, v_flex,
 };
 
-const LOADING_WINDOW_WIDTH: f32 = 420.;
-const LOADING_WINDOW_HEIGHT: f32 = 240.;
+use crate::window::create_loading_window_option;
 
 pub struct ResourceLoadingView {
     error_message: Option<SharedString>,
@@ -19,18 +17,9 @@ pub struct ResourceLoadingView {
 
 impl ResourceLoadingView {
     pub fn open(cx: &mut App) -> Result<WindowHandle<Self>> {
-        let bounds = Bounds::centered(
-            None,
-            size(px(LOADING_WINDOW_WIDTH), px(LOADING_WINDOW_HEIGHT)),
-            cx,
-        );
-        let handle = cx.open_window(
-            WindowOptions {
-                window_bounds: Some(WindowBounds::Windowed(bounds)),
-                ..WindowOptions::default()
-            },
-            |window, cx| cx.new(|cx| Self::new(cx, window)),
-        )?;
+        let handle = cx.open_window(create_loading_window_option(cx), |window, cx| {
+            cx.new(|cx| Self::new(cx, window))
+        })?;
 
         handle.update(cx, |_view, window, _cx| window.activate_window())?;
         Ok(handle)

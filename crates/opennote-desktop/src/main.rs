@@ -4,6 +4,7 @@ pub mod libs;
 pub mod logs;
 pub mod views;
 pub mod widgets;
+pub mod window;
 
 use std::collections::HashMap;
 
@@ -27,6 +28,7 @@ use crate::{
     },
     logs::UICustomLog,
     views::{resource_loading::ResourceLoadingView, workspace::Workspace},
+    window::{create_main_window_option, format_window_title},
 };
 
 async fn load_startup_resources() -> Result<(GlobalApplicationBootStrap, AssetsCollection)> {
@@ -102,16 +104,19 @@ async fn main() -> Result<()> {
                     Err(error) => loading_view.set_error(error.to_string(), cx),
                 };
 
-                let workspace_window = cx.open_window(WindowOptions::default(), |window, cx| {
-                    let view = cx.new(|cx| {
-                        Workspace::new(window, cx)
-                            .context("Workspace initialization failed")
-                            .unwrap()
-                    });
+                let workspace_window = cx.open_window(
+                    create_main_window_option(format_window_title(None, None, None)),
+                    |window, cx| {
+                        let view = cx.new(|cx| {
+                            Workspace::new(window, cx)
+                                .context("Workspace initialization failed")
+                                .unwrap()
+                        });
 
-                    // This first level on the window should be a Root.
-                    cx.new(|cx| Root::new(view, window, cx))
-                });
+                        // This first level on the window should be a Root.
+                        cx.new(|cx| Root::new(view, window, cx))
+                    },
+                );
 
                 match workspace_window {
                     Ok(_) => loading_window.remove_window(),

@@ -1,4 +1,5 @@
 mod actions;
+mod observations;
 
 use gpui::{Context, *};
 use gpui_component::{Root, StyledExt, Theme, WindowExt};
@@ -8,7 +9,12 @@ use opennote_models::constants::LOCAL_SERVER_NAME;
 use crate::{
     globals::{states::States, tasks::tracker::TaskTracker},
     key_mappings::key_contexts::WORKSPACE,
-    views::settings::SettingsPanel,
+    views::{
+        settings::SettingsPanel,
+        workspace::observations::{
+            observe_global_for_updating_window_title, observe_pane_for_updating_window_title,
+        },
+    },
     widgets::{
         command_bar::bar::CommandBar,
         dialogue::{PENDING_TASKS_WARNING, open_warning_dialogue},
@@ -16,6 +22,7 @@ use crate::{
         search_bar::bar::SearchBar,
         sidebar::OpenNoteSidebar,
     },
+    window::format_window_title,
 };
 
 /// This is the root of all views in this app.
@@ -51,7 +58,12 @@ impl Workspace {
         cx.update_global::<States, ()>(|this, _cx| {
             let window_id = window.window_handle().window_id();
             this.active_panes.insert(window_id, pane.downgrade());
-            this.set_active_server(window_id, SharedString::new(LOCAL_SERVER_NAME));
+
+            let server_name = SharedString::new(LOCAL_SERVER_NAME);
+            this.set_active_server(window_id, server_name.clone());
+
+            // Set window title
+            window.set_window_title(&format_window_title(None, Some(&server_name), None));
         });
 
         let focus_handle = cx.focus_handle();
@@ -65,6 +77,11 @@ impl Workspace {
         _subscriptions.push(cx.observe_window_appearance(window, |_this, window, cx| {
             Theme::sync_system_appearance(Some(window), cx);
         }));
+
+        _subscriptions.push(cx.observe_in(&pane, window, observe_pane_for_updating_window_title));
+
+        _subscriptions
+            .push(cx.observe_global_in::<States>(window, observe_global_for_updating_window_title));
 
         Ok(Self {
             focus_handle,

@@ -18,7 +18,7 @@ use crate::components::{
     OutdentBlock, PastedImageSource, TableCellPosition, is_table_row_candidate,
     parse_root_table_region, parse_table_body_row,
 };
-use crate::config::{ImagePasteBehavior, read_app_preferences};
+use crate::config::preferences::{ImagePasteBehavior, read_app_preferences};
 
 impl Editor {
     fn focused_block_for_tab_key(
@@ -943,42 +943,6 @@ impl Editor {
         } else {
             cx.notify();
         }
-    }
-
-    pub(crate) fn on_menu_bar_hover(
-        &mut self,
-        hovered: &bool,
-        _window: &mut Window,
-        cx: &mut Context<Self>,
-    ) {
-        self.set_menu_bar_hovered(*hovered, cx);
-    }
-
-    pub(crate) fn on_menu_panel_hover(
-        &mut self,
-        hovered: &bool,
-        _window: &mut Window,
-        cx: &mut Context<Self>,
-    ) {
-        self.set_menu_panel_hovered(*hovered, cx);
-    }
-
-    pub(crate) fn on_menu_submenu_panel_hover(
-        &mut self,
-        hovered: &bool,
-        _window: &mut Window,
-        cx: &mut Context<Self>,
-    ) {
-        self.set_menu_submenu_panel_hovered(*hovered, cx);
-    }
-
-    pub(crate) fn on_menu_submenu_bridge_hover(
-        &mut self,
-        hovered: &bool,
-        _window: &mut Window,
-        cx: &mut Context<Self>,
-    ) {
-        self.set_menu_submenu_bridge_hovered(*hovered, cx);
     }
 
     pub(crate) fn on_editor_mouse_down(
