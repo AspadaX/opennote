@@ -10,7 +10,10 @@ use crate::{
     globals::{states::States, tasks::tracker::TaskTracker},
     key_mappings::key_contexts::WORKSPACE,
     views::{
-        settings::SettingsPanel, workspace::observations::observe_pane_for_updating_window_title,
+        settings::SettingsPanel,
+        workspace::observations::{
+            observe_global_for_updating_window_title, observe_pane_for_updating_window_title,
+        },
     },
     widgets::{
         command_bar::bar::CommandBar,
@@ -76,6 +79,9 @@ impl Workspace {
         }));
 
         _subscriptions.push(cx.observe_in(&pane, window, observe_pane_for_updating_window_title));
+
+        _subscriptions
+            .push(cx.observe_global_in::<States>(window, observe_global_for_updating_window_title));
 
         Ok(Self {
             focus_handle,

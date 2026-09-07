@@ -5,6 +5,18 @@ use crate::{
     window::format_window_title,
 };
 
+pub fn observe_global_for_updating_window_title(
+    _this: &mut Workspace,
+    window: &mut Window,
+    cx: &mut Context<'_, Workspace>,
+) {
+    let states = get_states(cx);
+    let (server_name, _server_states) =
+        states.get_active_server(window.window_handle().window_id());
+
+    window.set_window_title(&format_window_title(None, Some(&server_name), None));
+}
+
 pub fn observe_pane_for_updating_window_title(
     _workspace: &mut Workspace,
     this: Entity<Pane>,
@@ -32,9 +44,17 @@ pub fn observe_pane_for_updating_window_title(
         None => None,
     };
 
+    let server_name = match server_name {
+        Some(result) => result,
+        None => states
+            .get_active_server(window.window_handle().window_id())
+            .0
+            .to_string(),
+    };
+
     window.set_window_title(&format_window_title(
         None,
-        server_name.as_deref(),
+        Some(&server_name),
         document_name.as_deref(),
     ));
 }
