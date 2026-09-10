@@ -1,7 +1,9 @@
-mod blocks_tree;
-mod tab;
-
+pub mod block_states;
 pub mod tree;
+
+mod blocks_tree;
+mod observations;
+mod tab;
 
 use std::collections::HashMap;
 
@@ -27,17 +29,14 @@ use crate::{
     widgets::{
         pane::helpers::open_block,
         sidebar::{
+            block_states::BlockStates,
             blocks_tree::build_blocks_tree,
+            observations::observe_on_app_quit_for_block_states_persistence,
             tab::create_sidebar_tabbar,
             tree::{create_root_tree_list_item, create_tree_list_item},
         },
     },
 };
-
-#[derive(Debug)]
-struct BlockState {
-    pub has_expanded: bool,
-}
 
 #[derive(Debug, Clone)]
 pub enum OpenNoteSidebarEvent {
@@ -49,7 +48,9 @@ pub struct OpenNoteSidebar {
     focus_handle: FocusHandle,
     is_toggled: bool,
     tree_states: HashMap<SharedString, Entity<TreeState>>,
-    blocks_state: HashMap<Uuid, BlockState>,
+
+    // Store blocks' UI states, like expansion
+    block_states: BlockStates,
 
     mouse_position: Option<Point<Pixels>>,
 
@@ -59,7 +60,7 @@ pub struct OpenNoteSidebar {
 impl EventEmitter<OpenNoteSidebarEvent> for OpenNoteSidebar {}
 
 impl OpenNoteSidebar {
-    pub fn new(cx: &mut Context<Self>) -> Self {
+    pub fn new(cx: &mut Context<Self>, block_states: BlockStates) -> Self {
         let mut _subscriptions = Vec::new();
 
         // Watch for changes in States, such as the blocks list.
@@ -70,11 +71,15 @@ impl OpenNoteSidebar {
             cx.notify();
         }));
 
+        _subscriptions.push(
+            cx.on_app_quit(|this, cx| observe_on_app_quit_for_block_states_persistence(this, cx)),
+        );
+
         Self {
             focus_handle: cx.focus_handle(), // obtain a new focus from the global pool for this view
             is_toggled: true,
             tree_states: Self::create_tree_states(cx),
-            blocks_state: HashMap::new(),
+            block_states,
             mouse_position: None,
             _subscriptions,
         }
@@ -125,7 +130,7 @@ impl OpenNoteSidebar {
         // For now this will always sort by alphabetical orders
         blocks.sort_by_cached_key(|item| (item.get_title(), item.id));
 
-        let tree_items = build_blocks_tree(blocks, &mut self.blocks_state);
+        let tree_items = build_blocks_tree(blocks, &mut self.block_states);
 
         tree_state.update(cx, |this, cx| {
             this.set_items(tree_items, cx);
@@ -183,6 +188,7 @@ impl OpenNoteSidebar {
             };
 
             create_tree_list_item(
+                cx,
                 index,
                 entry,
                 label,

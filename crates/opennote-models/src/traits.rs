@@ -61,6 +61,12 @@ where
             path.to_path_buf()
         };
 
+        if let Some(parent) = path.parent() {
+            if !parent.exists() {
+                std::fs::create_dir_all(parent)?;
+            }
+        }
+
         let default_settings = Self::default();
         if !path.exists() {
             write_to_file(&default_settings, &path)?;
