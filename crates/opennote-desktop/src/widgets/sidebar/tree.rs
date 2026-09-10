@@ -2,10 +2,11 @@ use std::collections::HashMap;
 
 use gpui::{
     App, AppContext, BorrowAppContext, ClickEvent, ElementId, Entity, InteractiveElement,
-    ParentElement, SharedString, StatefulInteractiveElement, Styled, prelude::FluentBuilder, px,
+    ParentElement, SharedString, StatefulInteractiveElement, Styled, div, prelude::FluentBuilder,
+    px,
 };
 use gpui_component::{
-    IconName, InteractiveElementExt, Sizable,
+    ActiveTheme, IconName, InteractiveElementExt, Sizable,
     button::{Button, ButtonRounded, ButtonVariants},
     h_flex,
     list::ListItem,
@@ -20,7 +21,7 @@ use crate::{
     },
     key_mappings::mappings::{CreateOneBlock, DeleteBlocks, ExportFiles, ImportFiles},
     libs::{tabs::drag::DraggedItem, tree::TreeState},
-    widgets::sidebar::{BlockState, OpenNoteSidebar, OpenNoteSidebarEvent},
+    widgets::sidebar::{OpenNoteSidebar, OpenNoteSidebarEvent},
 };
 
 // Collect blocks to drag from both the single selection and the multi-selection.
@@ -117,6 +118,7 @@ pub fn create_root_tree_list_item(
 }
 
 pub fn create_tree_list_item(
+    cx: &mut App,
     index: usize,
     entry: &crate::libs::tree::TreeEntry,
     label: SharedString, // The label of the tree item. Usually is the title of a block
@@ -144,17 +146,42 @@ pub fn create_tree_list_item(
     let tree_state_entity_on_mouse_click = tree_state.clone();
     let tree_state_entity_on_mouse_right_click = tree_state.clone();
 
+    let block_state = sidebar_entity_expand
+        .read(cx)
+        .block_states
+        .get_block_state(uuid);
+
+    let has_expanded = match block_state {
+        Some(result) => result.has_expanded,
+        None => false,
+    };
+
+    let depth = entry.depth();
+    let indent_guide_color = cx.theme().sidebar_border;
+
     ListItem::new(index)
         .w_full() // Let the background highlights take over the entire row for the short ones as well
         .pl(px(16.) * entry.depth() + px(12.)) // Indent based on depth
         .when(is_selected || is_multi_selected, |this| this.selected(true))
         .cursor_move()
+        .relative()
+        .suffix(move |window, cx| create_indent_guide(window, cx, depth, indent_guide_color))
         .child(
             h_flex()
                 .when(has_children, |this| {
-                    render_parent_button(index, &id, uuid, &tree_state, sidebar_entity_expand, this)
+                    render_parent_button(
+                        has_expanded,
+                        index,
+                        &id,
+                        uuid,
+                        &tree_state,
+                        sidebar_entity_expand,
+                        this,
+                    )
                 })
-                .when(!has_children, |this| render_non_parent_button(&id, this))
+                .when(!has_children, |this| {
+                    render_non_parent_button(has_expanded, &id, this)
+                })
                 .id(id.clone())
                 .gap_2()
                 .when(is_dragged_over, |this| {
@@ -396,13 +423,18 @@ fn start_mouse_dragging(
     });
 }
 
-fn render_non_parent_button(id: &SharedString, this: gpui::Div) -> gpui::Div {
+fn render_non_parent_button(has_expanded: bool, id: &SharedString, this: gpui::Div) -> gpui::Div {
+    let icon = match has_expanded {
+        true => IconName::FileOpen,
+        false => IconName::FileClose,
+    };
+
     this.child(
         Button::new(ElementId::Name(SharedString::from(format!(
             "expand-{}",
             id
         ))))
-        .icon(IconName::File)
+        .icon(icon)
         .ghost()
         .xsmall()
         .rounded(ButtonRounded::Medium),
@@ -410,6 +442,7 @@ fn render_non_parent_button(id: &SharedString, this: gpui::Div) -> gpui::Div {
 }
 
 fn render_parent_button(
+    has_expanded: bool,
     index: usize,
     id: &SharedString,
     uuid: Uuid,
@@ -419,12 +452,17 @@ fn render_parent_button(
 ) -> gpui::Div {
     let tree_state = tree_state.clone();
 
+    let icon = match has_expanded {
+        true => IconName::FolderOpen,
+        false => IconName::FolderClosed,
+    };
+
     this.child(
         Button::new(ElementId::Name(SharedString::from(format!(
             "expand-{}",
             id
         ))))
-        .icon(IconName::Folder)
+        .icon(icon)
         .ghost()
         .xsmall()
         .rounded(ButtonRounded::Medium)
@@ -435,12 +473,7 @@ fn render_parent_button(
                         this.on_entry_click(index, window, cx);
                     });
 
-                    let block_state = this
-                        .blocks_state
-                        .entry(uuid)
-                        .or_insert(BlockState { has_expanded: true });
-
-                    block_state.has_expanded = !block_state.has_expanded;
+                    this.block_states.toggle_expansion(uuid);
 
                     cx.notify();
                 })
@@ -449,4 +482,27 @@ fn render_parent_button(
             cx.stop_propagation();
         }),
     )
+}
+
+fn create_indent_guide(
+    _: &mut gpui::Window,
+    _: &mut App,
+    depth: usize,
+    indent_guide_color: gpui::Hsla,
+) -> gpui::Div {
+    div()
+        .absolute()
+        .left_0()
+        .top_0()
+        .bottom_0()
+        .w(px(0.))
+        .children((0..depth).map(move |level| {
+            div()
+                .absolute()
+                .left(px(20. + 16. * level as f32))
+                .top_0()
+                .bottom_0()
+                .w(px(1.))
+                .bg(indent_guide_color)
+        }))
 }

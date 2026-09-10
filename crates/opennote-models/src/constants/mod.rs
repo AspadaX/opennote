@@ -20,6 +20,7 @@ pub const DESKTOP_TITLE_SEPARATOR: &str = " - ";
 pub const DESKTOP_SETTINGS_PANEL_NAME: &str = "Settings";
 pub const LOADING_WINDOW_WIDTH: f32 = 420.;
 pub const LOADING_WINDOW_HEIGHT: f32 = 240.;
+pub const DEFAULT_BLOCK_STATES_FILE_NAME: &str = "block_states.json";
 
 /*
  * Server Only

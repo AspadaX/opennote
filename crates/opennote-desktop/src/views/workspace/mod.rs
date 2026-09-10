@@ -4,7 +4,8 @@ mod observations;
 use gpui::{Context, *};
 use gpui_component::{Root, StyledExt, Theme, WindowExt};
 
-use opennote_models::constants::LOCAL_SERVER_NAME;
+use opennote_core_logics::configurations::{ApplicationType, get_configuration_folder_path};
+use opennote_models::{constants::LOCAL_SERVER_NAME, traits::LoadFromAndSaveToFile};
 
 use crate::{
     globals::{states::States, tasks::tracker::TaskTracker},
@@ -20,7 +21,7 @@ use crate::{
         dialogue::{PENDING_TASKS_WARNING, open_warning_dialogue},
         pane::Pane,
         search_bar::bar::SearchBar,
-        sidebar::OpenNoteSidebar,
+        sidebar::{OpenNoteSidebar, block_states::BlockStates},
     },
     window::format_window_title,
 };
@@ -50,7 +51,13 @@ impl Workspace {
     pub fn new(window: &mut Window, cx: &mut Context<Self>) -> Result<Self> {
         let mut _subscriptions = vec![];
 
-        let sidebar = cx.new(|cx| OpenNoteSidebar::new(cx));
+        // Load block states and then create sidebar based on the block state
+        let configuration_folder_path = get_configuration_folder_path(ApplicationType::Desktop);
+        let block_states = BlockStates::load_from_file(configuration_folder_path)?;
+        let sidebar = cx.new(|cx| OpenNoteSidebar::new(cx, block_states));
+
+        // An editor is owned by a pane.
+        // The editor creation is handled by the pane.
         let pane = cx.new(|cx| Pane::new(cx, window, sidebar.clone()));
         let editor = pane.read(cx).editor.downgrade();
 
