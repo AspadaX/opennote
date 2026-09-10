@@ -2,10 +2,11 @@ use std::collections::HashMap;
 
 use gpui::{
     App, AppContext, BorrowAppContext, ClickEvent, ElementId, Entity, InteractiveElement,
-    ParentElement, SharedString, StatefulInteractiveElement, Styled, prelude::FluentBuilder, px,
+    ParentElement, SharedString, StatefulInteractiveElement, Styled, div, prelude::FluentBuilder,
+    px,
 };
 use gpui_component::{
-    IconName, InteractiveElementExt, Sizable,
+    ActiveTheme, IconName, InteractiveElementExt, Sizable,
     button::{Button, ButtonRounded, ButtonVariants},
     h_flex,
     list::ListItem,
@@ -155,11 +156,16 @@ pub fn create_tree_list_item(
         None => false,
     };
 
+    let depth = entry.depth();
+    let indent_guide_color = cx.theme().sidebar_border;
+
     ListItem::new(index)
         .w_full() // Let the background highlights take over the entire row for the short ones as well
         .pl(px(16.) * entry.depth() + px(12.)) // Indent based on depth
         .when(is_selected || is_multi_selected, |this| this.selected(true))
         .cursor_move()
+        .relative()
+        .suffix(move |window, cx| create_indent_guide(window, cx, depth, indent_guide_color))
         .child(
             h_flex()
                 .when(has_children, |this| {
@@ -476,4 +482,27 @@ fn render_parent_button(
             cx.stop_propagation();
         }),
     )
+}
+
+fn create_indent_guide(
+    _: &mut gpui::Window,
+    _: &mut App,
+    depth: usize,
+    indent_guide_color: gpui::Hsla,
+) -> gpui::Div {
+    div()
+        .absolute()
+        .left_0()
+        .top_0()
+        .bottom_0()
+        .w(px(0.))
+        .children((0..depth).map(move |level| {
+            div()
+                .absolute()
+                .left(px(20. + 16. * level as f32))
+                .top_0()
+                .bottom_0()
+                .w(px(1.))
+                .bg(indent_guide_color)
+        }))
 }
