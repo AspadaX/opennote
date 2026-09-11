@@ -1,8 +1,6 @@
 pub mod helpers;
 pub mod tab;
 
-use std::collections::HashMap;
-
 use gpui::{
     Action, Context, Div, Entity, FocusHandle, Focusable, Render, SharedString, Subscription,
     Window, div, prelude::*, px,
@@ -14,16 +12,18 @@ use gpui_component::{
 };
 use uuid::Uuid;
 
-use crate::globals::{helpers::get_language_profile, states::helpers::get_states};
-use crate::key_mappings::{
-    helpers::get_keystrokes_as_shared_string,
-    mappings::{CreateOneBlock, OpenNewWindow, ToggleCommandBar, ToggleSearchBar},
-};
-use crate::libs::tabs::tab_bar::TabBar;
-use crate::widgets::{
-    editor::Editor,
-    pane::tab::{TabState, create_tab_bar_for_blocks},
-    sidebar::{OpenNoteSidebar, OpenNoteSidebarEvent},
+use crate::{
+    globals::{helpers::get_language_profile, states::helpers::get_states},
+    key_mappings::{
+        helpers::get_keystrokes_as_shared_string,
+        mappings::{CreateOneBlock, OpenNewWindow, ToggleCommandBar, ToggleSearchBar},
+    },
+    libs::tabs::tab_bar::TabBar,
+    widgets::{
+        editor::Editor,
+        pane::tab::{TabStates, create_tab_bar_for_blocks},
+        sidebar::{OpenNoteSidebar, OpenNoteSidebarEvent},
+    },
 };
 
 /// A container for 0 to many items that are open in the workspace.
@@ -35,7 +35,7 @@ pub struct Pane {
 
     pub selected_block_id: Option<Uuid>,
     pub opened_block_ids: Vec<Uuid>,
-    pub opened_block_states: HashMap<Uuid, TabState>,
+    pub opened_tab_states: TabStates,
     /// The string that will highlighted in the editor
     pub search_string: Option<SharedString>,
 
@@ -53,21 +53,25 @@ impl Pane {
     ) -> Self {
         let mut _subscriptions = Vec::new();
 
-        _subscriptions.push(cx.subscribe(&sidebar, move |this, _entity, event, cx| {
-            if !this.has_opened_blocks() {
-                return;
-            };
+        _subscriptions.push(cx.subscribe_in(
+            &sidebar,
+            window,
+            move |this, _entity, event, window, cx| {
+                if !this.has_opened_blocks() {
+                    return;
+                }
 
-            match event {
-                OpenNoteSidebarEvent::BlocksDeleted(block_ids) => {
-                    for id in block_ids {
-                        if this.opened_block_ids.contains(id) {
-                            this.close_tab(id, cx);
+                match event {
+                    OpenNoteSidebarEvent::BlocksDeleted(block_ids) => {
+                        for id in block_ids {
+                            if this.opened_block_ids.contains(id) {
+                                this.close_tab(id, cx, window);
+                            }
                         }
                     }
                 }
-            }
-        }));
+            },
+        ));
 
         let pane_ref = cx.weak_entity();
 
@@ -78,12 +82,17 @@ impl Pane {
             search_string: None,
             editor: cx.new(|cx| Editor::new(cx, window, pane_ref)),
             opened_block_ids: Vec::new(),
-            opened_block_states: HashMap::new(),
+            opened_tab_states: TabStates::new(),
             _subscriptions,
         }
     }
 
-    pub(crate) fn close_tab(&mut self, block_id: &Uuid, cx: &mut Context<Self>) {
+    pub(crate) fn close_tab(
+        &mut self,
+        block_id: &Uuid,
+        cx: &mut Context<Self>,
+        window: &mut gpui::Window,
+    ) {
         // if we have multiple tabs openning
         if self.opened_block_ids.len() > 1 {
             // Remove the closed block from the openned blocks,
@@ -97,7 +106,7 @@ impl Pane {
             }
 
             self.opened_block_ids.remove(removed_index as usize);
-            self.opened_block_states.remove(block_id);
+            self.opened_tab_states.remove_tab_state(block_id, window);
 
             // Move the focus to the previous tab / block
             if let Some(selected_block_id) = &self.selected_block_id {
@@ -129,7 +138,7 @@ impl Pane {
         // if we only have 1 tab openning
         if self.opened_block_ids.len() == 1 {
             self.opened_block_ids.clear();
-            self.opened_block_states.clear();
+            self.opened_tab_states.remove_all_tab_state(window);
             self.selected_block_id = None;
 
             cx.notify();
@@ -157,12 +166,7 @@ impl Pane {
         }
 
         self.opened_block_ids.push(block_id);
-        self.opened_block_states.insert(
-            block_id,
-            TabState {
-                ..Default::default()
-            },
-        );
+        self.opened_tab_states.create_tab_state(&block_id);
         self.selected_block_id = Some(block_id);
         cx.notify();
     }
@@ -311,7 +315,7 @@ impl Render for Pane {
             pane_id,
             &self.opened_block_ids,
             self.selected_block_id,
-            &self.opened_block_states,
+            &self.opened_tab_states,
         );
 
         // Open editor only when there is an active block

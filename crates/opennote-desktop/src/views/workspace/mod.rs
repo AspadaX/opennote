@@ -79,7 +79,7 @@ impl Workspace {
             Theme::sync_system_appearance(Some(window), cx);
         }));
 
-        _subscriptions.push(cx.observe_in(&pane, window, |this, entity, window, cx| {
+        _subscriptions.push(cx.observe_in(&pane, window, |this, _entity, window, cx| {
             this.update_window_title(window, cx);
         }));
 
