@@ -222,7 +222,7 @@ impl Workspace {
     pub fn close_active_tab(
         &mut self,
         _action: &CloseActiveTab,
-        _window: &mut Window,
+        window: &mut Window,
         cx: &mut Context<Self>,
     ) {
         let states = get_states(cx);
@@ -232,7 +232,7 @@ impl Workspace {
 
         let _ = active_pane.update(cx, |this, cx| {
             if let Some(selected_block_id) = this.selected_block_id {
-                this.close_tab(&selected_block_id, cx);
+                this.close_tab(&selected_block_id, cx, window);
             }
         });
     }

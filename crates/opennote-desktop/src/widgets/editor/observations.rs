@@ -13,7 +13,7 @@ use crate::{
             unique_notifications::ChunkBlockNotification,
         },
     },
-    widgets::{editor::Editor, pane::tab::TabState},
+    widgets::editor::Editor,
 };
 
 pub fn observe_theme_change(
@@ -82,5 +82,8 @@ pub fn observe_chunk_block(
     }
 
     // Alter the tab's save state to true
-    TabState::set_save_state(cx, pane_clone.clone(), block.id, true);
+    let _ = pane_clone.update(cx, |this, _cx| {
+        this.opened_tab_states
+            .update_tab_save_state(window, &block.id, true);
+    });
 }

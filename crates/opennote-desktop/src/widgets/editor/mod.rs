@@ -105,9 +105,8 @@ impl Editor {
         cx.defer(move |cx| {
             let _ = pane.update(cx, |this, _cx| {
                 if let Some(existing_block_id) = &block_id {
-                    if let Some(tab_state) = this.opened_block_states.get_mut(&existing_block_id) {
-                        tab_state.unsaved_content = Some(existing_block_content);
-                    }
+                    this.opened_tab_states
+                        .store_unsaved_content(existing_block_id, existing_block_content);
                 }
             });
         });
@@ -149,8 +148,8 @@ impl Editor {
         let unsaved_content = self
             .pane
             .update(cx, |this, _cx| {
-                if let Some(tab_state) = this.opened_block_states.get_mut(&block.id) {
-                    return tab_state.unsaved_content.take();
+                if let Some(unsaved) = this.opened_tab_states.take_tab_content(&block.id) {
+                    return Some(unsaved);
                 }
 
                 None

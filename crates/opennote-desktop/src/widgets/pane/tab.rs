@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use gpui::{App, Context, prelude::*};
+use gpui::{Context, Window, prelude::*};
 use gpui::{ElementId, SharedString, WeakEntity};
 use gpui_component::button::{Button, ButtonRounded, ButtonVariants};
 use gpui_component::{IconName, Selectable, Sizable};
@@ -33,15 +33,84 @@ impl Default for TabState {
     }
 }
 
-impl TabState {
-    pub fn set_save_state(cx: &mut App, pane: WeakEntity<Pane>, block_id: Uuid, has_saved: bool) {
-        let _ = pane.update(cx, |this, _cx| {
-            let Some(tab_state) = this.opened_block_states.get_mut(&block_id) else {
-                return;
-            };
+/// Key: block_id
+/// Value: TabState
+pub struct TabStates(HashMap<Uuid, TabState>);
 
+impl TabStates {
+    pub fn new() -> Self {
+        Self(HashMap::new())
+    }
+
+    pub fn does_tab_exist(&self, block_id: &Uuid) -> bool {
+        self.0.contains_key(block_id)
+    }
+
+    /// This will return a false when the tab does not exist.
+    pub fn has_tab_saved(&self, block_id: &Uuid) -> bool {
+        match self.0.get(block_id) {
+            Some(result) => result.has_saved,
+            None => false,
+        }
+    }
+
+    pub fn create_tab_state(&mut self, block_id: &Uuid) {
+        self.0.insert(
+            *block_id,
+            TabState {
+                ..Default::default()
+            },
+        );
+    }
+
+    pub fn update_tab_save_state(&mut self, window: &mut Window, block_id: &Uuid, has_saved: bool) {
+        if let Some(tab_state) = self.0.get_mut(block_id) {
             tab_state.has_saved = has_saved;
-        });
+
+            // As long as there's one tab remains edited,
+            // the corresponding window should also remain edited.
+            if !tab_state.has_saved {
+                window.set_window_edited(true);
+            }
+        }
+
+        self.cleanup_window_edited_state(window);
+    }
+
+    /// Check if the window is good to remove the edited state.
+    fn cleanup_window_edited_state(&self, window: &mut Window) {
+        let has_unsaved_contents = self
+            .0
+            .iter()
+            .any(|(_block_id, tab_state)| !tab_state.has_saved);
+
+        if !has_unsaved_contents {
+            window.set_window_edited(false);
+        }
+    }
+
+    pub fn store_unsaved_content(&mut self, block_id: &Uuid, unsaved: SharedString) {
+        if let Some(tab_state) = self.0.get_mut(&block_id) {
+            tab_state.unsaved_content = Some(unsaved);
+        }
+    }
+
+    pub fn take_tab_content(&mut self, block_id: &Uuid) -> Option<SharedString> {
+        if let Some(tab_state) = self.0.get_mut(block_id) {
+            return tab_state.unsaved_content.take();
+        }
+
+        None
+    }
+
+    pub fn remove_tab_state(&mut self, block_id: &Uuid, window: &mut Window) {
+        self.0.remove(block_id);
+        self.cleanup_window_edited_state(window);
+    }
+
+    pub fn remove_all_tab_state(&mut self, window: &mut Window) {
+        self.0.clear();
+        self.cleanup_window_edited_state(window);
     }
 }
 
@@ -51,16 +120,17 @@ pub fn create_tab_bar_for_blocks(
     pane_id: Uuid,
     opened_block_ids: &Vec<Uuid>,
     selected_block_id: Option<Uuid>,
-    opened_block_states: &HashMap<Uuid, TabState>,
+    openned_tab_states: &TabStates,
 ) -> TabBar {
     let tabs = TabBar::new("tabs").children(opened_block_ids.iter().map(|id| {
         let id = id.clone();
         let mut selected = false;
 
-        // Get the save status of the active block
-        let Some(tab_state) = opened_block_states.get(&id) else {
+        // If we can't get the tab state, that means the application is not synced.
+        // Then we probably need to quit the app.
+        if !openned_tab_states.does_tab_exist(&id) {
             panic!("Opened blocks' states dis-synced. Aborted")
-        };
+        }
 
         // The active block is the focused block
         if let Some(selected_block_id) = &selected_block_id {
@@ -94,8 +164,8 @@ pub fn create_tab_bar_for_blocks(
                     .ghost()
                     .xsmall()
                     .rounded(ButtonRounded::Medium)
-                    .on_click(cx.listener(move |view, _, _, cx| {
-                        view.close_tab(&id, cx);
+                    .on_click(cx.listener(move |view, _, window, cx| {
+                        view.close_tab(&id, cx, window);
                         cx.stop_propagation();
                     })),
             )
@@ -111,11 +181,12 @@ pub fn create_tab_bar_for_blocks(
                 move |value: &DraggedItem, _point, _window, app| app.new(|_| value.clone()),
             );
 
-        if !tab_state.has_saved {
+        if !openned_tab_states.has_tab_saved(&id) {
             tab = tab.prefix("⏺");
         }
 
         tab
     }));
+
     tabs
 }

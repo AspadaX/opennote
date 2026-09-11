@@ -2,13 +2,13 @@ use gpui::{Context, Entity};
 
 use opennote_velotype::editor::EditorEvent;
 
-use crate::widgets::{editor::Editor, pane::tab::TabState};
+use crate::widgets::editor::Editor;
 
 pub fn subscribe_editor_events(
     view: &mut Editor,
     _state: &Entity<opennote_velotype::editor::Editor>,
     event: &EditorEvent,
-    _window: &mut gpui::Window,
+    window: &mut gpui::Window,
     cx: &mut Context<'_, Editor>,
 ) {
     let pane_clone = view.pane.clone();
@@ -19,7 +19,10 @@ pub fn subscribe_editor_events(
                 return;
             };
 
-            TabState::set_save_state(cx, pane_clone.clone(), block.id, false);
+            let _ = pane_clone.update(cx, |this, _cx| {
+                this.opened_tab_states
+                    .update_tab_save_state(window, &block.id, false);
+            });
         }
     }
 }
