@@ -1,5 +1,4 @@
 mod actions;
-mod observations;
 
 use gpui::{Context, *};
 use gpui_component::{Root, StyledExt, Theme, WindowExt};
@@ -10,12 +9,7 @@ use opennote_models::{constants::LOCAL_SERVER_NAME, traits::LoadFromAndSaveToFil
 use crate::{
     globals::{states::States, tasks::tracker::TaskTracker},
     key_mappings::key_contexts::WORKSPACE,
-    views::{
-        settings::SettingsPanel,
-        workspace::observations::{
-            observe_global_for_updating_window_title, observe_pane_for_updating_window_title,
-        },
-    },
+    views::settings::SettingsPanel,
     widgets::{
         command_bar::bar::CommandBar,
         dialogue::{PENDING_TASKS_WARNING, open_warning_dialogue},
@@ -85,10 +79,13 @@ impl Workspace {
             Theme::sync_system_appearance(Some(window), cx);
         }));
 
-        _subscriptions.push(cx.observe_in(&pane, window, observe_pane_for_updating_window_title));
+        _subscriptions.push(cx.observe_in(&pane, window, |this, entity, window, cx| {
+            this.update_window_title(window, cx);
+        }));
 
-        _subscriptions
-            .push(cx.observe_global_in::<States>(window, observe_global_for_updating_window_title));
+        _subscriptions.push(cx.observe_global_in::<States>(window, |this, window, cx| {
+            this.update_window_title(window, cx);
+        }));
 
         Ok(Self {
             focus_handle,
